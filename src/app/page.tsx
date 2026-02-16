@@ -1,9 +1,8 @@
 /**
- * Root page that redirects to the dashboard.
- * The dashboard is the primary entry point for the OneLink Console.
+ * Root page that renders the integrated OneLink creation dashboard UI.
  */
-import { redirect } from 'next/navigation';
+import OneLinkStitchedPage from '@/components/onelink/OneLinkStitchedPage';
 
 export default function Home() {
-  redirect('/dashboard');
+  return <OneLinkStitchedPage />;
 }

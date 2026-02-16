@@ -59,13 +59,21 @@ Custom verification and maintenance skills are defined in `.claude/skills/`.
 1. All tasks target the production dashboard at repository root.
 2. Modify only root project files under `src/`.
 
-## Design Token Governance
+## Design System (MUST)
+
+`design/design-system.pen` is the single source of truth for **both** design tokens and component specifications.
+
+### Component-First Development
+
+When building or modifying any UI:
+
+1. **Read `.pen` first**: Use Pencil MCP tools (`batch_get`) to read component specs from `design/design-system.pen` before writing any UI code.
+2. **Match `.pen` structure**: Implement using MUI components, but match the layout, spacing, colors, and visual structure defined in the `.pen` components.
+3. **Screen compositions**: The `.pen` file contains full dashboard screen compositions (`dashboard-utility`, `dashboard-revenue`, `dashboard-football`). Use these as reference when building pages.
+4. **Component mapping**: Map `.pen` reusable components to MUI equivalents (e.g., `.pen` Card → MUI Card with matching sx props).
+
+### Token Governance
 
 - Single source of truth: `design/design-system.pen`.
-- Always refresh generated token docs before token-related documentation changes:
-  - `pnpm tokens:sync`
-- Use generated outputs for references:
-  - `design/tokens/design-tokens.generated.json`
-  - `design/tokens/design-tokens.generated.md`
-- Unification strategy and migration status:
-  - `design/design-system-unification.md`
+- Runtime tokens: `src/styles/tokens/design-tokens.css` (CSS variables) and `src/styles/tokens/design-tokens.ts` (hex for MUI).
+- Unification strategy: `design/design-system-unification.md`

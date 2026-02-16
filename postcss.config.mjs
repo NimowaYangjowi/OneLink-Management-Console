@@ -1,7 +1,8 @@
+/**
+ * PostCSS configuration for Next.js without Tailwind plugins.
+ */
 const config = {
-  plugins: {
-    "@tailwindcss/postcss": {},
-  },
+  plugins: {},
 };
 
 export default config;

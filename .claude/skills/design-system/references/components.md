@@ -2,14 +2,23 @@
 
 컴포넌트 스타일링 가이드.
 
-Color token source: `design/design-system.pen` via `design/tokens/design-tokens.generated.json`.
+Source of truth: `design/design-system.pen` (Pencil MCP로 읽기).
+Runtime tokens: `src/styles/tokens/design-tokens.ts` + `design-tokens.css`.
 
 ## 컴포넌트 생성 원칙
+
+### 0. .pen 컴포넌트 확인 우선 (MUST)
+
+새 컴포넌트 생성 또는 수정 전 반드시:
+1. Pencil MCP `batch_get`으로 `design/design-system.pen`의 reusable 컴포넌트 목록 확인
+2. 해당하는 .pen 컴포넌트가 있으면 `readDepth: 2`로 구조/스타일 읽기
+3. .pen 스펙에 맞춰 MUI로 구현
 
 ### 1. 기존 컴포넌트 재활용 우선
 
 새 컴포넌트 생성 전 반드시 확인:
-- `@.claude/rules/components.md` 에서 유사 컴포넌트 검색
+- `.pen` 파일에서 매칭되는 reusable 컴포넌트 검색
+- `src/components/` 에서 기존 구현 검색
 - 기존 컴포넌트 확장/합성으로 해결 가능한지 검토
 
 ### 2. MUI 기반
@@ -17,6 +26,7 @@ Color token source: `design/design-system.pen` via `design/tokens/design-tokens.
 - 모든 기본 컴포넌트는 MUI 사용
 - 스타일은 sx prop 사용
 - styled-components, emotion css 직접 사용 지양
+- `.pen` 컴포넌트의 속성값(padding, gap, cornerRadius 등)을 MUI sx prop으로 변환
 
 ### 3. 중립색 기본
 

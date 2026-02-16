@@ -1,6 +1,6 @@
 # MUI Custom Theme (SHOULD)
 
-MUI 커스텀 테마 설정 규칙 - **Pencil 색상 + Forma 원칙** 통합
+MUI 커스텀 테마 설정 규칙 - **Pencil 색상 + Design Principles** 통합
 
 ## 테마 파일 관리
 
@@ -44,7 +44,7 @@ const pencilTokens = {
 };
 ```
 
-## Typography (Forma 원칙)
+## Typography
 
 ### 본문
 - **Pretendard Variable** 버전을 웹폰트로 사용
@@ -61,7 +61,7 @@ h1: {
 }
 ```
 
-## Elevation (Forma 원칙)
+## Elevation
 
 Paper에 기본적으로 사용되는 elevation의 box shadow 설정:
 
@@ -79,7 +79,7 @@ customShadows: {
 }
 ```
 
-## Border Radius (Forma 원칙)
+## Border Radius
 
 모든 컴포넌트의 borderRadius는 **0** (Sharp Corners)
 
