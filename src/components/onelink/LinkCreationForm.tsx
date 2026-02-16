@@ -100,7 +100,7 @@ function LinkCreationForm() {
             Configure attribution, deep linking, and branding parameters.
           </Typography>
 
-          <Stack spacing={2}>
+          <Stack spacing={0}>
             <AttributionSection
               state={state}
               errors={errors}

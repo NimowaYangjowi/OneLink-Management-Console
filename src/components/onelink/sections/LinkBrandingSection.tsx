@@ -5,6 +5,8 @@
  * Maps to the domain, template_id, and url_id branding fields
  * in the AppsFlyer OneLink API v2.
  *
+ * Template ID dropdown is populated from template IDs registered in Settings.
+ *
  * Props:
  * @param {OneLinkFormState} state - Current form state [Required]
  * @param {Partial<Record<string, string>>} errors - Validation errors [Required]
@@ -18,6 +20,7 @@ import { Autocomplete, TextField, Box, Typography } from '@mui/material';
 import type { OneLinkFormState } from '@/hooks/useOneLinkForm';
 import SectionAccordion from '@/components/shared/SectionAccordion';
 import FormTextField from '@/components/shared/FormTextField';
+import { useSettings } from '@/lib/providers/SettingsContext';
 
 interface SectionProps {
   state: OneLinkFormState;
@@ -27,7 +30,19 @@ interface SectionProps {
 
 const DOMAIN_OPTIONS = ['click.example.com'];
 
+/** Shared Autocomplete input styles. */
+const autocompleteSx = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: 0,
+    '& fieldset': { borderColor: 'divider' },
+    '&:hover fieldset': { borderColor: 'text.secondary' },
+    '&.Mui-focused fieldset': { borderColor: 'text.primary', borderWidth: 1 },
+  },
+};
+
 function LinkBrandingSection({ state, errors, onFieldChange }: SectionProps) {
+  const { settings } = useSettings();
+  const templateIdOptions = settings.templateIds;
   const previewUrl = `https://${state.domain || '...'}/${state.template_id || '...'}/${state.url_id || '...'}`;
 
   return (
@@ -64,21 +79,7 @@ function LinkBrandingSection({ state, errors, onFieldChange }: SectionProps) {
                 size="small"
                 error={!!errors.domain}
                 helperText={errors.domain}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 0,
-                    '& fieldset': {
-                      borderColor: 'divider',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'text.secondary',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: 'text.primary',
-                      borderWidth: 1,
-                    },
-                  },
-                }}
+                sx={autocompleteSx}
               />
             )}
           />
@@ -88,13 +89,22 @@ function LinkBrandingSection({ state, errors, onFieldChange }: SectionProps) {
           </Typography>
 
           <Box sx={{ flex: 1, minWidth: 120 }}>
-            <FormTextField
-              label="Template"
+            <Autocomplete
+              freeSolo
+              options={templateIdOptions}
               value={state.template_id}
-              onChange={(v) => onFieldChange('template_id', v)}
-              placeholder="template"
-              error={!!errors.template_id}
-              helperText={errors.template_id}
+              onInputChange={(_event, newValue) => onFieldChange('template_id', newValue)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Template"
+                  size="small"
+                  placeholder="template"
+                  error={!!errors.template_id}
+                  helperText={errors.template_id}
+                  sx={autocompleteSx}
+                />
+              )}
             />
           </Box>
 

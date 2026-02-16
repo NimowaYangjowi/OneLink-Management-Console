@@ -25,6 +25,7 @@ import {
   Typography,
   Box,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { ChevronDown } from 'lucide-react';
 
 interface SectionAccordionProps {
@@ -47,10 +48,16 @@ function SectionAccordion({
       defaultExpanded={defaultExpanded}
       disableGutters
       sx={{
+        border: 0,
         borderRadius: 0,
-        border: '1px solid',
-        borderColor: 'divider',
         boxShadow: 'none',
+        backgroundColor: 'transparent',
+        borderBottom: '1px solid',
+        borderColor: (theme) => alpha(theme.palette.divider, 0.45),
+        '&:first-of-type': {
+          borderTop: '1px solid',
+          borderTopColor: (theme) => alpha(theme.palette.divider, 0.45),
+        },
         '&:before': {
           display: 'none',
         },
@@ -62,8 +69,19 @@ function SectionAccordion({
       <AccordionSummary
         expandIcon={<ChevronDown size={18} />}
         sx={{
+          px: 0,
+          minHeight: 52,
+          '& .MuiAccordionSummary-expandIconWrapper': {
+            color: 'text.secondary',
+          },
+          '& .MuiAccordionSummary-content': {
+            my: 1.5,
+          },
+          '& .MuiAccordionSummary-content.Mui-expanded': {
+            my: 1.5,
+          },
           '&.Mui-expanded': {
-            minHeight: 48,
+            minHeight: 52,
           },
         }}
       >
@@ -91,7 +109,7 @@ function SectionAccordion({
           )}
         </Box>
       </AccordionSummary>
-      <AccordionDetails sx={{ p: 3 }}>
+      <AccordionDetails sx={{ px: 0, pt: 0.5, pb: 3 }}>
         {children}
       </AccordionDetails>
     </Accordion>

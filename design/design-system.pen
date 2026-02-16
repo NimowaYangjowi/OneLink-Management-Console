@@ -6378,7 +6378,8 @@
                       "content": "Track your business revenue and growth metrics",
                       "lineHeight": 1.5,
                       "fontFamily": "Inter",
-                      "fontSize": 14
+                      "fontSize": 14,
+                      "fontWeight": "normal"
                     }
                   ]
                 },

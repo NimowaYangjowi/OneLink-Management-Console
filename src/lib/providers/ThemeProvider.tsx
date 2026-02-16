@@ -1,13 +1,16 @@
 /**
- * MUI ThemeProvider wrapper with CssBaseline.
- * Applies the project's default theme (Pencil tokens + Forma principles)
- * to all MUI components and resets browser default styles.
+ * MUI ThemeProvider wrapper with CssBaseline and Emotion cache for Next.js App Router.
+ * Uses AppRouterCacheProvider to ensure Emotion styles are properly streamed
+ * during SSR, preventing hydration mismatches.
+ * Also wraps SettingsProvider for global settings state.
  */
 'use client';
 
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import defaultTheme from '@/styles/themes/default';
+import { SettingsProvider } from '@/lib/providers/SettingsContext';
 
 /**
  * ThemeProvider
@@ -22,10 +25,14 @@ import defaultTheme from '@/styles/themes/default';
  */
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
-    <MuiThemeProvider theme={ defaultTheme }>
-      <CssBaseline />
-      { children }
-    </MuiThemeProvider>
+    <AppRouterCacheProvider options={ { enableCssLayer: true } }>
+      <MuiThemeProvider theme={ defaultTheme }>
+        <CssBaseline />
+        <SettingsProvider>
+          { children }
+        </SettingsProvider>
+      </MuiThemeProvider>
+    </AppRouterCacheProvider>
   );
 }
 

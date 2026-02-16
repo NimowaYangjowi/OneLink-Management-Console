@@ -77,7 +77,14 @@ function DeepLinkingSection({ state, errors, onFieldChange }: SectionProps) {
               size="small"
               onClick={() => setShowMore(!showMore)}
               endIcon={showMore ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              sx={{ textTransform: 'none' }}
+              sx={{
+                textTransform: 'none',
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                  color: 'text.primary',
+                },
+              }}
             >
               {showMore ? 'Hide parameters' : 'Show more parameters'}
             </Button>
