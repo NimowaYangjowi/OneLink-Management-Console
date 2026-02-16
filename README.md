@@ -1,17 +1,59 @@
-# React + Vite
+# OneLink Managing Console
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repository contains two separated projects with different purposes:
 
-Currently, two official plugins are available:
+- Production app: Next.js dashboard at repository root
+- Design reference app: Storybook/Vite guide at `design-guide/forma-studio`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Repository Structure
 
-## React Compiler
+```text
+.
+├── src/                     # OneLink dashboard source (Next.js App Router)
+├── design/design-system.pen # Pencil source file
+├── design-guide/forma-studio/ # Storybook/Vite design guide (reference only)
+└── tasks/                   # implementation notes and checklists
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Dashboard (Primary)
 
-## Expanding the ESLint configuration
+```bash
+pnpm install
+pnpm dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-# OneLink-Managing-Console
+- URL: [http://localhost:3000](http://localhost:3000)
+- Main routes:
+  - `/dashboard`
+  - `/dashboard/manage-links`
+
+## Design Guide (Reference Only)
+
+The Storybook project is intentionally isolated from production runtime.
+
+```bash
+pnpm design-guide:install
+pnpm design-guide:storybook
+```
+
+or:
+
+```bash
+cd design-guide/forma-studio
+pnpm install
+pnpm storybook
+```
+
+## Build and Validation
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+## Cleanup Rules
+
+- Do not import runtime code from `design-guide/forma-studio` into `src/`.
+- Keep dashboard dependencies in root `package.json`.
+- Keep Storybook dependencies in `design-guide/forma-studio/package.json`.

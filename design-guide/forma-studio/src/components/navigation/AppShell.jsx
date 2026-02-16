@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import { GNB } from './GNB';
 
@@ -21,6 +21,7 @@ import { GNB } from './GNB';
  * @param {boolean} hasHeaderBorder - 헤더 하단 보더 [Optional, 기본값: true]
  * @param {boolean} isHeaderSticky - 헤더 고정 [Optional, 기본값: true]
  * @param {boolean} isHeaderTransparent - 헤더 투명 배경 [Optional, 기본값: false]
+ * @param {string} drawerVariant - 드로어 변형 ('temporary' | 'persistent') [Optional, 기본값: 'persistent']
  * @param {object} sx - 추가 스타일 [Optional]
  *
  * Example usage:
@@ -46,9 +47,13 @@ const AppShell = forwardRef(function AppShell({
   hasHeaderBorder = true,
   isHeaderSticky = true,
   isHeaderTransparent = false,
+  drawerVariant = 'persistent',
   sx,
   ...props
 }, ref) {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const isPersistent = drawerVariant === 'persistent';
+
   return (
     <Box
       ref={ref}
@@ -73,6 +78,9 @@ const AppShell = forwardRef(function AppShell({
         hasBorder={hasHeaderBorder}
         isSticky={isHeaderSticky}
         isTransparent={isHeaderTransparent}
+        drawerVariant={drawerVariant}
+        isOpen={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
       />
 
       {/* Main Content */}
@@ -82,6 +90,10 @@ const AppShell = forwardRef(function AppShell({
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
+          ...(isPersistent && {
+            transition: 'margin-left 225ms cubic-bezier(0, 0, 0.2, 1)',
+            marginLeft: isDrawerOpen ? `${drawerWidth}px` : 0,
+          }),
         }}
       >
         {children}

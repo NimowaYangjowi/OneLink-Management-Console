@@ -147,7 +147,7 @@ function FormaHeader({
 
       {/* 모바일 메뉴 Drawer */}
       <Drawer
-        anchor="right"
+        anchor="left"
         open={ mobileMenuOpen }
         onClose={ () => setMobileMenuOpen(false) }
         PaperProps={ {
@@ -155,6 +155,13 @@ function FormaHeader({
             width: '100%',
             maxWidth: 400,
             bgcolor: 'background.default',
+          },
+        } }
+        ModalProps={ {
+          BackdropProps: {
+            sx: {
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            },
           },
         } }
       >

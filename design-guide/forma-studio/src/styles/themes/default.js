@@ -1,126 +1,166 @@
 /**
- * Forma Studio Theme
+ * Default Theme
  *
- * 공간 디자인 & 건축 컨설팅 스튜디오 "Forma Studio"의 디자인 토큰입니다.
- * Groth Studio 웹사이트 레퍼런스를 기반으로 제작되었습니다.
+ * Pencil 디자인 시스템 색상 토큰 + Forma 디자인 원칙 통합 테마
  *
- * ## 핵심 철학
+ * ## 색상 시스템 (Pencil shadcn 기반)
+ * - 중립적 컬러 팔레트 (Neutral Light 테마)
+ * - CSS 변수 기반 토큰을 MUI palette로 매핑
+ *
+ * ## 디자인 원칙 (Forma Studio 기반)
  * - **Sharp Corners**: borderRadius 0 (날카로운 모서리)
  * - **Dimmed Shadow**: offset 없이 blur만 사용하는 은은한 그림자
- * - **Warm Cream**: 따뜻한 크림 베이지 배경 (#F5F0E8)
- * - **Terracotta Accent**: 테라코타 오렌지 (#C65D3B)
  * - **Architectural Typography**: 세리프(Fraunces) + 산세리프(Pretendard) 조합
  *
- * ## 브랜드 정보
- * - **브랜드명**: Forma Studio
- * - **슬로건**: Shaping Spaces, Crafting Experiences
- * - **분야**: 공간 디자인 & 건축 컨설팅
- * - **위치**: Seoul, Korea / New York, USA
+ * ## Pencil 토큰 매핑
+ * | Pencil 변수           | MUI 매핑                    |
+ * |-----------------------|-----------------------------|
+ * | --primary             | palette.primary.main        |
+ * | --primary-foreground  | palette.primary.contrastText|
+ * | --secondary           | palette.secondary.main      |
+ * | --background          | palette.background.default  |
+ * | --foreground          | palette.text.primary        |
+ * | --border              | palette.divider             |
+ * | --destructive         | palette.error.main          |
+ * | --muted-foreground    | palette.text.secondary      |
+ * | --card                | palette.background.paper    |
+ * | --accent              | palette.action.selected     |
  */
 
 import { createTheme } from '@mui/material/styles';
-import { grey } from '@mui/material/colors';
+
+// ============================================================
+// Pencil Design Token Reference (CSS Variables → MUI)
+// ============================================================
+const pencilTokens = {
+  // Core colors (Light mode, Neutral base)
+  primary: '#171717',
+  primaryForeground: '#fafafa',
+  secondary: '#f5f5f5',
+  secondaryForeground: '#171717',
+  background: '#fafafa',
+  foreground: '#0a0a0a',
+  card: '#fafafa',
+  cardForeground: '#0a0a0a',
+  popover: '#fafafa',
+  popoverForeground: '#0a0a0a',
+  muted: '#f5f5f5',
+  mutedForeground: '#737373',
+  accent: '#f5f5f5',
+  accentForeground: '#171717',
+  destructive: '#e7000b',
+  border: '#e5e5e5',
+  input: '#e5e5e5',
+  ring: '#a3a3a3',
+  // Sidebar specific
+  sidebar: '#fafafa',
+  sidebarForeground: '#09090b',
+  sidebarBorder: '#e4e4e7',
+  sidebarAccent: '#f4f4f4',
+  sidebarAccentForeground: '#18181b',
+  sidebarPrimary: '#18181b',
+  sidebarPrimaryForeground: '#fafafa',
+};
 
 // ============================================================
 // 1. Color Tokens (색상 토큰)
-// Forma Studio 브랜드 색상 - Groth Studio 레퍼런스 기반
+// Pencil shadcn 토큰 → MUI palette 매핑
 // ============================================================
 const palette = {
   mode: 'light',
 
-  // 브랜드 색상 - Terracotta/Burnt Orange
+  // Primary - shadcn neutral dark
   primary: {
-    light: '#D4836A',      // 밝은 테라코타
-    main: '#C65D3B',       // 메인 테라코타 (Groth 레퍼런스)
-    dark: '#A34A2E',       // 어두운 테라코타
-    contrastText: '#FFFFFF',
+    light: '#404040',
+    main: pencilTokens.primary,        // #171717
+    dark: '#0a0a0a',
+    contrastText: pencilTokens.primaryForeground,  // #fafafa
   },
 
-  // 보조 색상 - Dark Olive/Forest
+  // Secondary - shadcn neutral light
   secondary: {
-    light: '#5A6B5A',      // 밝은 올리브
-    main: '#3D4A3D',       // 다크 올리브 (푸터 배경)
-    dark: '#2A332A',       // 매우 어두운 올리브
-    contrastText: '#FFFFFF',
+    light: '#fafafa',
+    main: pencilTokens.secondary,      // #f5f5f5
+    dark: '#e5e5e5',
+    contrastText: pencilTokens.secondaryForeground,  // #171717
   },
 
-  // 상태 색상 (Feedback) - 톤 다운된 버전
+  // Error/Destructive
   error: {
-    light: '#E57373',
-    main: '#C65D3B',       // 테라코타와 유사하게
-    dark: '#A34A2E',
-    contrastText: '#FFFFFF',
+    light: '#ff4d4d',
+    main: pencilTokens.destructive,    // #e7000b
+    dark: '#b30000',
+    contrastText: '#ffffff',
   },
+
+  // Warning
   warning: {
-    light: '#FFB74D',
-    main: '#F5A623',
-    dark: '#E09000',
+    light: '#ffb74d',
+    main: '#f59e0b',
+    dark: '#d97706',
     contrastText: '#000000',
   },
+
+  // Success
   success: {
-    light: '#81C784',
-    main: '#4A7C4A',       // 올리브 그린 계열
-    dark: '#3D4A3D',
-    contrastText: '#FFFFFF',
-  },
-  info: {
-    light: '#90CAF9',
-    main: '#5C7A8A',       // 뮤트된 블루그레이
-    dark: '#445660',
-    contrastText: '#FFFFFF',
+    light: '#86efac',
+    main: '#22c55e',
+    dark: '#16a34a',
+    contrastText: '#ffffff',
   },
 
-  // 텍스트 색상 - 깊은 블랙
+  // Info
+  info: {
+    light: '#93c5fd',
+    main: '#3b82f6',
+    dark: '#2563eb',
+    contrastText: '#ffffff',
+  },
+
+  // 텍스트 색상
   text: {
-    primary: '#000000',           // 순수 블랙 (Groth 스타일)
-    secondary: 'rgba(0, 0, 0, 0.6)',
+    primary: pencilTokens.foreground,           // #0a0a0a
+    secondary: pencilTokens.mutedForeground,    // #737373
     disabled: 'rgba(0, 0, 0, 0.38)',
   },
 
-  // 배경 색상 - Warm Cream
+  // 배경 색상
   background: {
-    default: '#F5F0E8',           // 크림 베이지 (Groth 메인 배경)
-    paper: '#FFFFFF',             // 카드/모달용 화이트
-    cream: '#F5F0E8',             // 크림 베이지
-    accent: '#C65D3B',            // 액센트 배경 (사이드바)
-    dark: '#3D4A3D',              // 다크 배경 (푸터)
+    default: pencilTokens.background,   // #fafafa
+    paper: pencilTokens.card,           // #fafafa
+    muted: pencilTokens.muted,          // #f5f5f5
+    accent: pencilTokens.accent,        // #f5f5f5
   },
 
-  // 구분선 - 점선 스타일 참조용
-  divider: 'rgba(0, 0, 0, 0.15)',
+  // 구분선
+  divider: pencilTokens.border,         // #e5e5e5
 
   // 액션 상태
   action: {
     active: 'rgba(0, 0, 0, 0.54)',
     hover: 'rgba(0, 0, 0, 0.04)',
-    selected: 'rgba(198, 93, 59, 0.12)',  // 테라코타 틴트
+    selected: 'rgba(23, 23, 23, 0.08)',   // primary 기반 틴트
     disabled: 'rgba(0, 0, 0, 0.26)',
     disabledBackground: 'rgba(0, 0, 0, 0.12)',
-    focus: 'rgba(198, 93, 59, 0.2)',      // 테라코타 틴트
+    focus: 'rgba(23, 23, 23, 0.12)',      // primary 기반 틴트
   },
 
-  // Grey 스케일
+  // Grey 스케일 (Pencil neutral 기반)
   grey: {
-    50: '#FAFAF8',         // 워밍 업된 그레이
-    100: '#F5F3F0',
-    200: '#E8E5E0',
-    300: '#D5D0C8',
-    400: '#B0AAA0',
-    500: '#8A8478',
-    600: '#6B6560',
-    700: '#4D4844',
-    800: '#2E2B28',
-    900: '#1A1817',
+    50: '#fafafa',
+    100: '#f5f5f5',
+    200: '#e5e5e5',
+    300: '#d4d4d4',
+    400: '#a3a3a3',
+    500: '#737373',
+    600: '#525252',
+    700: '#404040',
+    800: '#262626',
+    900: '#171717',
   },
 
-  // 커스텀 브랜드 색상
-  brand: {
-    terracotta: '#C65D3B',
-    cream: '#F5F0E8',
-    olive: '#3D4A3D',
-    sand: '#E8DFD0',
-    charcoal: '#2E2B28',
-  },
+  // Pencil 원본 토큰 참조용 (커스텀)
+  pencil: pencilTokens,
 };
 
 // ============================================================
@@ -405,79 +445,61 @@ const defaultTheme = createTheme({
 defaultTheme.customShadows = customShadows;
 
 /**
- * Forma Studio 대시보드 스타일 설정
+ * 대시보드 스타일 설정 (Pencil 색상 + Forma 원칙)
  */
 defaultTheme.dashboard = {
-  style: 'forma',
+  style: 'pencil',
   iconStyle: 'outlined',
   iconWeight: 400,
-  cardBorderRadius: 0,
+  cardBorderRadius: 0,  // Forma 원칙: Sharp corners
   cardColors: [
-    'linear-gradient(to bottom, #FFFFFF 0%, #FFFFFF 100%)',
-    'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',  // 크림
-    'linear-gradient(to bottom, #C65D3B 0%, #C65D3B 100%)',  // 테라코타
-    'linear-gradient(to bottom, #3D4A3D 0%, #3D4A3D 100%)',  // 올리브
-    'linear-gradient(to bottom, #FFFFFF 0%, #FFFFFF 100%)',
-    'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',
+    `linear-gradient(to bottom, ${pencilTokens.card} 0%, ${pencilTokens.card} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.muted} 0%, ${pencilTokens.muted} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.primary} 0%, ${pencilTokens.primary} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.secondary} 0%, ${pencilTokens.secondary} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.card} 0%, ${pencilTokens.card} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.muted} 0%, ${pencilTokens.muted} 100%)`,
   ],
   subCardColors: [
-    'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',
-    'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',
-    'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',
-    'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',
-    'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',
-    'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',
+    `linear-gradient(to bottom, ${pencilTokens.muted} 0%, ${pencilTokens.muted} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.muted} 0%, ${pencilTokens.muted} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.muted} 0%, ${pencilTokens.muted} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.muted} 0%, ${pencilTokens.muted} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.muted} 0%, ${pencilTokens.muted} 100%)`,
+    `linear-gradient(to bottom, ${pencilTokens.muted} 0%, ${pencilTokens.muted} 100%)`,
   ],
-  textColor: palette.text.primary,
-  textSecondary: palette.text.secondary,
+  textColor: pencilTokens.foreground,
+  textSecondary: pencilTokens.mutedForeground,
   textShadow: '0 0 0 rgba(0, 0, 0, 0)',
   backdropFilter: 'blur(0px)',
   WebkitBackdropFilter: 'blur(0px)',
-  border: '1px solid transparent',
-  borderColor: 'transparent',
-  shadow: customShadows.lg,
-  subBorder: '1px solid rgba(0, 0, 0, 0.08)',
+  border: `1px solid ${pencilTokens.border}`,
+  borderColor: pencilTokens.border,
+  shadow: customShadows.lg,  // Forma 원칙: Dimmed shadow
+  subBorder: `1px solid ${pencilTokens.border}`,
   subShadow: '0 0 0 rgba(0, 0, 0, 0)',
   subBackdropFilter: 'blur(0px)',
-  subBorderRadius: 0,
-  dividerColor: 'rgba(0, 0, 0, 0.15)',
+  subBorderRadius: 0,  // Forma 원칙: Sharp corners
+  dividerColor: pencilTokens.border,
   progressHeight: 4,
-  progressTrackColor: 'rgba(0, 0, 0, 0.08)',
-  progressBarColor: palette.primary.main,
+  progressTrackColor: pencilTokens.muted,
+  progressBarColor: pencilTokens.primary,
   progressGradient: false,
-  progressBorderRadius: 0,
-  background: '#F5F0E8',  // 크림 배경
-  atmosphere: 'linear-gradient(to bottom, #F5F0E8 0%, #F5F0E8 100%)',
+  progressBorderRadius: 0,  // Forma 원칙: Sharp corners
+  background: pencilTokens.background,
+  atmosphere: `linear-gradient(to bottom, ${pencilTokens.background} 0%, ${pencilTokens.background} 100%)`,
   atmosphereOpacity: 0,
-  accentColor: palette.primary.main,
-  accentColors: {
-    terracotta: '#C65D3B',
-    olive: '#3D4A3D',
-    sand: '#E8DFD0',
-    cream: '#F5F0E8',
-  },
+  accentColor: pencilTokens.primary,
+  // Pencil 토큰 참조
+  tokens: pencilTokens,
   blobs: null,
-};
-
-/**
- * Forma Studio 브랜드 정보
- */
-defaultTheme.brand = {
-  name: 'Forma Studio',
-  tagline: 'Shaping Spaces, Crafting Experiences',
-  description: 'An architectural and spatial design studio specializing in consciously designed environments for businesses, nonprofits, and people.',
-  locations: [
-    { city: 'Seoul', country: 'Korea', timezone: 'KST' },
-    { city: 'New York', country: 'USA', timezone: 'ET' },
-  ],
-  navigation: ['Projects', 'Research', 'About', 'Contact'],
-  sidebarTitle: 'Research & Design',
 };
 
 export default defaultTheme;
 
 // 개별 토큰 내보내기 (문서화용)
 export {
+  pencilTokens,
   palette,
   typography,
   spacing,

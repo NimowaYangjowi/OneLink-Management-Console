@@ -38,6 +38,9 @@ export const useGNB = () => useContext(GNBContext);
  * @param {boolean} hasBorder - 헤더 하단 보더 [Optional, 기본값: true]
  * @param {boolean} isSticky - 헤더 고정 [Optional, 기본값: true]
  * @param {boolean} isTransparent - 헤더 투명 배경 [Optional, 기본값: false]
+ * @param {string} drawerVariant - 드로어 변형 ('temporary' | 'persistent') [Optional, 기본값: 'temporary']
+ * @param {boolean} isOpen - 드로어 열림 상태 (controlled mode) [Optional]
+ * @param {function} onOpenChange - 드로어 상태 변경 콜백 (controlled mode) [Optional]
  * @param {object} sx - 추가 스타일 [Optional]
  *
  * Example usage:
@@ -59,15 +62,28 @@ const GNB = forwardRef(function GNB({
   hasBorder = true,
   isSticky = true,
   isTransparent = false,
+  drawerVariant = 'temporary',
+  isOpen: controlledOpen,
+  onOpenChange,
   sx,
   ...props
 }, ref) {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down(breakpoint));
 
-  const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
-  const closeDrawer = () => setIsDrawerOpen(false);
+  const isControlled = controlledOpen !== undefined;
+  const isDrawerOpen = isControlled ? controlledOpen : internalOpen;
+
+  const setOpen = (value) => {
+    if (!isControlled) setInternalOpen(value);
+    if (onOpenChange) onOpenChange(value);
+  };
+
+  const toggleDrawer = () => setOpen(!isDrawerOpen);
+  const closeDrawer = () => setOpen(false);
+
+  const isPersistent = drawerVariant === 'persistent';
 
   /**
    * 헤더 스타일
@@ -87,6 +103,10 @@ const GNB = forwardRef(function GNB({
     borderBottom: hasBorder ? '1px solid' : 'none',
     borderColor: 'divider',
     backdropFilter: isTransparent ? 'blur(12px)' : 'none',
+    ...(isPersistent && {
+      transition: 'margin-left 225ms cubic-bezier(0, 0, 0.2, 1)',
+      marginLeft: isDrawerOpen ? `${drawerWidth}px` : 0,
+    }),
     ...sx,
   };
 
@@ -154,7 +174,7 @@ const GNB = forwardRef(function GNB({
   );
 
   return (
-    <GNBContext.Provider value={{ isDrawerOpen, toggleDrawer, closeDrawer, isMobile }}>
+    <GNBContext.Provider value={{ isDrawerOpen, toggleDrawer, closeDrawer, isMobile, drawerWidth, isPersistent }}>
       {/* Header */}
       <Box ref={ref} component="header" sx={headerStyles} {...props}>
         {/* Left: Logo */}
@@ -167,18 +187,18 @@ const GNB = forwardRef(function GNB({
           {/* Persistent (always visible) */}
           {persistent}
 
-          {/* Desktop: Show navContent */}
-          {!isMobile && navContent}
+          {/* Desktop: Show navContent inline (temporary mode only) */}
+          {!isMobile && !isPersistent && navContent}
 
-          {/* Mobile: Hamburger menu */}
-          {isMobile && navContent && (
+          {/* Toggle button: always for persistent, mobile-only for temporary */}
+          {(isPersistent || (isMobile && navContent)) && (
             <IconButton
               onClick={toggleDrawer}
               size="medium"
-              aria-label="Open menu"
+              aria-label={isDrawerOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isDrawerOpen}
             >
-              <MenuIcon />
+              {isPersistent && isDrawerOpen ? <CloseIcon /> : <MenuIcon />}
             </IconButton>
           )}
         </Box>
@@ -186,15 +206,27 @@ const GNB = forwardRef(function GNB({
 
       {/* Mobile Drawer */}
       <Drawer
-        anchor="right"
+        anchor="left"
         open={isDrawerOpen}
         onClose={closeDrawer}
+        variant={drawerVariant}
         sx={{
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
+            overflowY: 'auto',
           },
         }}
+        {...(!isPersistent && {
+          ModalProps: {
+            disableEnforceFocus: true,
+            BackdropProps: {
+              sx: {
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              },
+            },
+          },
+        })}
       >
         {renderDrawerContent()}
       </Drawer>

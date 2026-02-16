@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Read",
       "Write",
@@ -10,5 +11,8 @@
       "Write(.env*)",
       "Write(*.local.*)"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "pencil"
+  ]
 }
