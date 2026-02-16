@@ -1,71 +1,11 @@
-/* Google Fonts 임포트 */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&display=swap');
-
 @import "tailwindcss";
-
-/* Pretendard 웹폰트 */
-@font-face {
-  font-family: 'Pretendard Variable';
-  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.woff2') format('woff2-variations');
-  font-weight: 100 900;
-}
-
-/* Pencil 디자인 시스템 CSS 변수 */
-:root {
-  /* Core colors */
-  --primary: #171717;
-  --primary-foreground: #fafafa;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #171717;
-  --background: #fafafa;
-  --foreground: #0a0a0a;
-  --card: #fafafa;
-  --card-foreground: #0a0a0a;
-  --popover: #fafafa;
-  --popover-foreground: #0a0a0a;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --accent: #f5f5f5;
-  --accent-foreground: #171717;
-  --destructive: #e7000b;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --ring: #a3a3a3;
-
-  /* Sidebar specific */
-  --sidebar: #fafafa;
-  --sidebar-foreground: #09090b;
-  --sidebar-border: #e4e4e7;
-  --sidebar-accent: #f4f4f4;
-  --sidebar-accent-foreground: #18181b;
-  --sidebar-primary: #18181b;
-  --sidebar-primary-foreground: #fafafa;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
-
-/* 기본 스타일 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@import "../styles/tokens/pen-tokens.generated.css";
 
 html,
 body {
-  height: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-}
-
-/* 다크 모드 (필요시) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-  }
 }

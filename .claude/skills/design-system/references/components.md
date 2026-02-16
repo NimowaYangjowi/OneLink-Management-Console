@@ -2,6 +2,8 @@
 
 컴포넌트 스타일링 가이드.
 
+Color token source: `design/design-system.pen` via `design/tokens/design-tokens.generated.json`.
+
 ## 컴포넌트 생성 원칙
 
 ### 1. 기존 컴포넌트 재활용 우선

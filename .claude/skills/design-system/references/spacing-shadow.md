@@ -1,6 +1,9 @@
 # Spacing & Shadow
 
-간격, 그림자, 모양 토큰.
+Spacing, shadow, and shape tokens.
+
+Source: `src/styles/themes/default.ts`
+Note: These tokens are implementation-level and separate from `design/design-system.pen` variable tokens.
 
 ## Spacing (간격)
 

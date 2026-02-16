@@ -11,9 +11,27 @@ This repository contains two separated projects with different purposes:
 .
 ├── src/                     # OneLink dashboard source (Next.js App Router)
 ├── design/design-system.pen # Pencil source file
+├── design/tokens/           # Generated token snapshots from .pen
 ├── design-guide/forma-studio/ # Storybook/Vite design guide (reference only)
 └── tasks/                   # implementation notes and checklists
 ```
+
+## Design Token Source Of Truth
+
+`design/design-system.pen` is the only source of truth for design-token variables.
+
+Generate synchronized token documents:
+
+```bash
+pnpm tokens:sync
+```
+
+Generated outputs:
+- `design/tokens/design-tokens.generated.json`
+- `design/tokens/design-tokens.generated.md`
+
+Governance and unification plan:
+- `design/design-system-unification.md`
 
 ## Dashboard (Primary)
 

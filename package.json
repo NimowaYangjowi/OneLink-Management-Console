@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "tokens:normalize-pen": "node scripts/normalize-pen-fallbacks.mjs",
+    "tokens:sync": "node scripts/sync-pen-tokens.mjs",
     "design-guide:install": "pnpm --dir design-guide/forma-studio install",
     "design-guide:dev": "pnpm --dir design-guide/forma-studio dev",
     "design-guide:storybook": "pnpm --dir design-guide/forma-studio storybook",

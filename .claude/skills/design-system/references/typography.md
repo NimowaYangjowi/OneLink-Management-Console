@@ -1,6 +1,9 @@
 # Typography
 
-Forma Studio 타이포그래피 시스템 - 세리프(Fraunces) + 산세리프(Pretendard) 조합.
+Forma Studio typography system.
+
+Source: `src/styles/themes/default.ts`
+Note: Typography tokens are not currently defined in `design/design-system.pen`.
 
 ## 폰트 패밀리
 

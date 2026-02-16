@@ -28,39 +28,12 @@
  */
 
 import { createTheme } from '@mui/material/styles';
+import { pencilTokens } from './pen-tokens.generated';
 
 // ============================================================
 // Pencil Design Token Reference (CSS Variables → MUI)
 // ============================================================
-const pencilTokens = {
-  // Core colors (Light mode, Neutral base)
-  primary: '#171717',
-  primaryForeground: '#fafafa',
-  secondary: '#f5f5f5',
-  secondaryForeground: '#171717',
-  background: '#fafafa',
-  foreground: '#0a0a0a',
-  card: '#fafafa',
-  cardForeground: '#0a0a0a',
-  popover: '#fafafa',
-  popoverForeground: '#0a0a0a',
-  muted: '#f5f5f5',
-  mutedForeground: '#737373',
-  accent: '#f5f5f5',
-  accentForeground: '#171717',
-  destructive: '#e7000b',
-  border: '#e5e5e5',
-  input: '#e5e5e5',
-  ring: '#a3a3a3',
-  // Sidebar specific
-  sidebar: '#fafafa',
-  sidebarForeground: '#09090b',
-  sidebarBorder: '#e4e4e7',
-  sidebarAccent: '#f4f4f4',
-  sidebarAccentForeground: '#18181b',
-  sidebarPrimary: '#18181b',
-  sidebarPrimaryForeground: '#fafafa',
-};
+// Imported from generated token snapshot.
 
 // ============================================================
 // 1. Color Tokens (색상 토큰)

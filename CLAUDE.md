@@ -25,6 +25,7 @@
 - `src/lib` - providers/utilities
 - `src/styles` - theme and global style support
 - `design/design-system.pen` - design source file
+- `design/tokens` - generated token snapshots (`pnpm tokens:sync`)
 - `design-guide/forma-studio` - design guide (non-production)
 
 ## Commands
@@ -37,6 +38,7 @@ pnpm dev
 pnpm lint
 pnpm typecheck
 pnpm build
+pnpm tokens:sync
 ```
 
 ### Design guide (from root)
@@ -54,6 +56,7 @@ Custom verification and maintenance skills are defined in `.claude/skills/`.
 
 | Skill | Purpose |
 |-------|---------|
+| `design-system` | Design-system token governance and usage workflow anchored to `design/design-system.pen` |
 | `verify-implementation` | Sequentially runs all verify skills to generate a consolidated verification report |
 | `manage-skills` | Analyzes session changes, creates/updates verification skills, and manages CLAUDE.md |
 
@@ -63,3 +66,14 @@ Custom verification and maintenance skills are defined in `.claude/skills/`.
 2. For dashboard tasks, modify only root project files.
 3. For design guide tasks, modify only `design-guide/forma-studio`.
 4. Keep dependencies isolated per project.
+
+## Design Token Governance
+
+- Single source of truth: `design/design-system.pen`.
+- Always refresh generated token docs before token-related documentation changes:
+  - `pnpm tokens:sync`
+- Use generated outputs for references:
+  - `design/tokens/design-tokens.generated.json`
+  - `design/tokens/design-tokens.generated.md`
+- Unification strategy and migration status:
+  - `design/design-system-unification.md`

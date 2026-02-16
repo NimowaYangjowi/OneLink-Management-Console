@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import { ThemeProvider } from '@/lib/providers/ThemeProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'OneLink Dashboard',
-  description: 'OneLink 관리 콘솔',
+  title: 'OneLink Managing Console',
+  description: 'Frontend implementation removed',
 };
 
 export default function RootLayout({
@@ -14,11 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
