@@ -70,6 +70,22 @@ pnpm typecheck
 pnpm build
 ```
 
+## Claude to Codex Bridge
+
+This repository contains Claude-specific runtime config under `.claude/`.
+Use the bridge commands below to reuse those rules in Codex.
+
+```bash
+# Regenerate AGENTS.md from CLAUDE.md + .claude/skills + .claude/rules + .claude/settings.json
+pnpm bridge:codex
+
+# Run the same auto-commit stop hook that Claude uses
+pnpm codex:stop-hook
+
+# Optional: start Codex CLI with automatic stop-hook execution on exit
+pnpm codex:bridge-cli -- --help
+```
+
 ## Cleanup Rules
 
 - Do not import runtime code from `design-guide/forma-studio` into `src/`.
