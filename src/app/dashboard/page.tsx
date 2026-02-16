@@ -1,19 +1,19 @@
 /**
- * Link Creation page stub.
- * Temporary placeholder - will be replaced in Phase 7 with full link creation form.
+ * Link Creation page - default dashboard route.
+ * Renders the OneLink creation form with live preview panel.
  */
+
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
+import LinkCreationForm from '@/components/onelink/LinkCreationForm';
+
+export const metadata = {
+  title: 'Create OneLink | OneLink Console',
+};
 
 export default function DashboardPage() {
   return (
-    <Box sx={ { p: 4 } }>
-      <Typography variant="h4" sx={ { fontWeight: 600 } }>
-        Link Creation
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={ { mt: 1 } }>
-        Create and manage your OneLink deep links.
-      </Typography>
+    <Box sx={ { p: { xs: 2, md: 4 }, maxWidth: 1200 } }>
+      <LinkCreationForm />
     </Box>
   );
 }
