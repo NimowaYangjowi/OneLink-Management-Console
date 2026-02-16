@@ -6,6 +6,13 @@
 - Main source path: `src/`
 - Main runtime commands run at repository root.
 
+## Core API Reference
+
+- All feature development is based on the **AppsFlyer OneLink API v2**.
+- API guide: <https://dev.appsflyer.com/hc/reference/onelink-v2-create-link>
+- When implementing link creation, management, or any OneLink-related features, always refer to this API documentation as the single source of truth for request/response schemas, parameters, and behavior.
+- OneLink API key is managed via environment variables (e.g. `.env.local`), **not** through an in-app settings page. Never hardcode or expose API keys in client-side code.
+
 ## Legacy Design Guide
 
 - `design-guide/forma-studio` is a separate Storybook/Vite project.
