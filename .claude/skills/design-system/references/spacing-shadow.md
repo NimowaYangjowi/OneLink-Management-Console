@@ -41,7 +41,7 @@ sx={{ p: 2, mt: 3 }}
 
 ## Shadow (그림자)
 
-### Forma 원칙: Dimmed Shadow
+### Design Principle: Dimmed Shadow
 
 - x, y offset: **0** (그림자 방향 없음)
 - blur만 사용하여 은은한 효과
@@ -84,7 +84,7 @@ elevation4: customShadows.xl
 
 ## Shape (모양)
 
-### Forma 원칙: Sharp Corners
+### Design Principle: Sharp Corners
 
 ```jsx
 // 기본 설정 (테마에서)

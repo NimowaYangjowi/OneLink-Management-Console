@@ -13,7 +13,6 @@ This skill standardizes design-system decisions for this repository.
 2. `design/tokens/design-tokens.generated.json` (machine-readable snapshot)
 3. `design/tokens/design-tokens.generated.md` (human-readable snapshot)
 4. `src/styles/themes/default.ts` (runtime implementation)
-5. `design-guide/forma-studio` (reference/playground only)
 
 ## Required Workflow For Token Tasks
 
@@ -35,7 +34,7 @@ This skill standardizes design-system decisions for this repository.
 - Allowed point-color cases: CTA emphasis, active/selected state, and explicit semantic feedback.
 - Disallowed point-color cases: decorative backgrounds, ordinary body text, and non-semantic icon coloring.
 - Use semantic colors (`error`, `warning`, `success`, `info`) only for state meaning.
-- Keep production runtime (`src/`) and design-guide runtime (`design-guide/forma-studio`) isolated.
+- Design tokens are sourced exclusively from `design/` directory outputs.
 
 ## Ambiguous Fallback Handling
 

@@ -1,37 +1,37 @@
 import { createTheme } from '@mui/material/styles';
 import type { Shadows } from '@mui/material/styles';
-import { PEN_DEFAULT_TOKENS } from '@/styles/tokens/pen-tokens.generated';
+import { DESIGN_TOKENS } from '@/styles/tokens/design-tokens';
 
-const fontSans = '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif';
-const fontSerif = 'var(--font-fraunces), "Fraunces", "Noto Serif KR", Georgia, serif';
+const fontSans = 'Poppins, sans-serif';
+const fontSerif = '"Aref Ruqaa", ui-serif, serif';
 
 export const pencilTokens = {
-  primary: PEN_DEFAULT_TOKENS['--primary'],
-  primaryForeground: PEN_DEFAULT_TOKENS['--primary-foreground'],
-  secondary: PEN_DEFAULT_TOKENS['--secondary'],
-  secondaryForeground: PEN_DEFAULT_TOKENS['--secondary-foreground'],
-  background: PEN_DEFAULT_TOKENS['--background'],
-  foreground: PEN_DEFAULT_TOKENS['--foreground'],
-  card: PEN_DEFAULT_TOKENS['--card'],
-  cardForeground: PEN_DEFAULT_TOKENS['--card-foreground'],
-  popover: PEN_DEFAULT_TOKENS['--popover'],
-  popoverForeground: PEN_DEFAULT_TOKENS['--popover-foreground'],
-  muted: PEN_DEFAULT_TOKENS['--muted'],
-  mutedForeground: PEN_DEFAULT_TOKENS['--muted-foreground'],
-  accent: PEN_DEFAULT_TOKENS['--accent'],
-  accentForeground: PEN_DEFAULT_TOKENS['--accent-foreground'],
-  destructive: PEN_DEFAULT_TOKENS['--destructive'],
-  border: PEN_DEFAULT_TOKENS['--border'],
-  input: PEN_DEFAULT_TOKENS['--input'],
-  ring: PEN_DEFAULT_TOKENS['--ring'],
-  sidebar: PEN_DEFAULT_TOKENS['--sidebar'],
-  sidebarForeground: PEN_DEFAULT_TOKENS['--sidebar-foreground'],
-  sidebarBorder: PEN_DEFAULT_TOKENS['--sidebar-border'],
-  sidebarAccent: PEN_DEFAULT_TOKENS['--sidebar-accent'],
-  sidebarAccentForeground: PEN_DEFAULT_TOKENS['--sidebar-accent-foreground'],
-  sidebarPrimary: PEN_DEFAULT_TOKENS['--sidebar-primary'],
-  sidebarPrimaryForeground: PEN_DEFAULT_TOKENS['--sidebar-primary-foreground'],
-  sidebarRing: PEN_DEFAULT_TOKENS['--sidebar-ring'],
+  primary: DESIGN_TOKENS['--primary'],
+  primaryForeground: DESIGN_TOKENS['--primary-foreground'],
+  secondary: DESIGN_TOKENS['--secondary'],
+  secondaryForeground: DESIGN_TOKENS['--secondary-foreground'],
+  background: DESIGN_TOKENS['--background'],
+  foreground: DESIGN_TOKENS['--foreground'],
+  card: DESIGN_TOKENS['--card'],
+  cardForeground: DESIGN_TOKENS['--card-foreground'],
+  popover: DESIGN_TOKENS['--popover'],
+  popoverForeground: DESIGN_TOKENS['--popover-foreground'],
+  muted: DESIGN_TOKENS['--muted'],
+  mutedForeground: DESIGN_TOKENS['--muted-foreground'],
+  accent: DESIGN_TOKENS['--accent'],
+  accentForeground: DESIGN_TOKENS['--accent-foreground'],
+  destructive: DESIGN_TOKENS['--destructive'],
+  border: DESIGN_TOKENS['--border'],
+  input: DESIGN_TOKENS['--input'],
+  ring: DESIGN_TOKENS['--ring'],
+  sidebar: DESIGN_TOKENS['--sidebar'],
+  sidebarForeground: DESIGN_TOKENS['--sidebar-foreground'],
+  sidebarBorder: DESIGN_TOKENS['--sidebar-border'],
+  sidebarAccent: DESIGN_TOKENS['--sidebar-accent'],
+  sidebarAccentForeground: DESIGN_TOKENS['--sidebar-accent-foreground'],
+  sidebarPrimary: DESIGN_TOKENS['--sidebar-primary'],
+  sidebarPrimaryForeground: DESIGN_TOKENS['--sidebar-primary-foreground'],
+  sidebarRing: DESIGN_TOKENS['--sidebar-ring'],
 };
 
 export const customShadows = {
@@ -76,7 +76,7 @@ const defaultTheme = createTheme({
     divider: pencilTokens.border,
   },
   shape: {
-    borderRadius: 0,
+    borderRadius: 8,
   },
   typography: {
     fontFamily: fontSans,

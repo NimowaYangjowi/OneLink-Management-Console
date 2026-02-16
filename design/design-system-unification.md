@@ -4,7 +4,6 @@
 
 Design-system information was split across:
 - `design/design-system.pen` (Pencil source)
-- `design-guide/forma-studio` (Storybook/Vite reference app)
 - `.claude/skills/design-system` (assistant behavior and references)
 
 This document defines the unification model and current migration status.
@@ -38,20 +37,17 @@ Current token extraction focuses on these variables (primarily color tokens).
 3. Added generated runtime token artifacts:
    - `src/styles/tokens/pen-tokens.generated.css`
    - `src/styles/tokens/pen-tokens.generated.ts`
-   - `design-guide/forma-studio/src/styles/themes/pen-tokens.generated.js`
 4. Updated root docs (`README.md`, `CLAUDE.md`) to point to the same source and sync workflow.
 5. Updated `.claude/skills/design-system` references to consume generated token outputs instead of hardcoded, drifting values.
 6. Connected runtime token consumption:
    - `src/styles/themes/default.ts` uses generated TS tokens
    - `src/app/globals.css` imports generated CSS variables
-   - `design-guide/forma-studio/src/styles/themes/default.js` imports generated JS tokens
 
 ## Operating Rules
 
-1. Do not treat Storybook text as token authority.
-2. For token values and theme-axis variants, use generated files only.
-3. If `design/design-system.pen` changes, run `pnpm tokens:sync` before editing docs or skill references.
-4. If generated output changed, update affected implementation/theme files in a separate, explicit follow-up.
+1. For token values and theme-axis variants, use generated files only.
+2. If `design/design-system.pen` changes, run `pnpm tokens:sync` before editing docs or skill references.
+3. If generated output changed, update affected implementation/theme files in a separate, explicit follow-up.
 
 ## Fallback Status
 

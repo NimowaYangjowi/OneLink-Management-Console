@@ -8,15 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "tokens:normalize-pen": "node scripts/normalize-pen-fallbacks.mjs",
-    "tokens:sync": "node scripts/sync-pen-tokens.mjs",
     "bridge:codex": "node scripts/sync-claude-to-codex.mjs",
     "codex:stop-hook": "bash .codex/hooks/on-stop.sh",
-    "codex:bridge-cli": "bash scripts/codex-with-claude-bridge.sh",
-    "design-guide:install": "pnpm --dir design-guide/forma-studio install",
-    "design-guide:dev": "pnpm --dir design-guide/forma-studio dev",
-    "design-guide:storybook": "pnpm --dir design-guide/forma-studio storybook",
-    "design-guide:build-storybook": "pnpm --dir design-guide/forma-studio build-storybook"
+    "codex:bridge-cli": "bash scripts/codex-with-claude-bridge.sh"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

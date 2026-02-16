@@ -1,6 +1,6 @@
 # Typography
 
-Forma Studio typography system.
+Dashboard typography system.
 
 Source: `src/styles/themes/default.ts`
 Note: Typography tokens are not currently defined in `design/design-system.pen`.

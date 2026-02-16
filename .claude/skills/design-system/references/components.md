@@ -279,28 +279,3 @@ import { Settings, User, FileText } from 'lucide-react';
 import { FaUser } from 'react-icons/fa';
 ```
 
-## Storybook 작성
-
-컴포넌트 생성 시 반드시 Story 함께 작성:
-
-```jsx
-// ComponentName.stories.jsx
-export default {
-  title: 'Custom Component/ComponentName',
-  component: ComponentName,
-  tags: ['autodocs'],
-  argTypes: {
-    variant: {
-      control: 'select',
-      options: ['default', 'outlined'],
-      description: '버튼 스타일',
-    },
-  },
-};
-
-export const Default = {
-  args: {
-    variant: 'default',
-  },
-};
-```

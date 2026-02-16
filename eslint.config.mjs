@@ -13,7 +13,6 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     // Keep production lint focused on the dashboard app.
-    "design-guide/**",
     "tasks/**",
     "design/**",
     ".claude/**",

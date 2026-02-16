@@ -48,13 +48,6 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 - When implementing link creation, management, or any OneLink-related features, always refer to this API documentation as the single source of truth for request/response schemas, parameters, and behavior.
 - OneLink API key is managed via environment variables (e.g. `.env.local`), **not** through an in-app settings page. Never hardcode or expose API keys in client-side code.
 
-## Legacy Design Guide
-
-- `design-guide/forma-studio` is a separate Storybook/Vite project.
-- Treat it as a design reference and playground only.
-- Do not import runtime code from `design-guide/forma-studio` into root `src/`.
-- Storybook-related changes should stay inside `design-guide/forma-studio`.
-
 ## Documentation Language
 
 - Write new documentation in English by default.
@@ -73,8 +66,6 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 - `src/styles` - theme and global style support
 - `design/design-system.pen` - design source file
 - `design/tokens` - generated token snapshots (`pnpm tokens:sync`)
-- `design-guide/forma-studio` - design guide (non-production)
-
 ## Commands
 
 ### Dashboard (root)
@@ -86,15 +77,6 @@ pnpm lint
 pnpm typecheck
 pnpm build
 pnpm tokens:sync
-```
-
-### Design guide (from root)
-
-```bash
-pnpm design-guide:install
-pnpm design-guide:dev
-pnpm design-guide:storybook
-pnpm design-guide:build-storybook
 ```
 
 ## Skills
@@ -109,10 +91,8 @@ Custom verification and maintenance skills are defined in `.claude/skills/`.
 
 ## Workflow
 
-1. Decide whether the task targets production dashboard or design guide.
-2. For dashboard tasks, modify only root project files.
-3. For design guide tasks, modify only `design-guide/forma-studio`.
-4. Keep dependencies isolated per project.
+1. All tasks target the production dashboard at repository root.
+2. Modify only root project files under `src/`.
 
 ## Design Token Governance
 
