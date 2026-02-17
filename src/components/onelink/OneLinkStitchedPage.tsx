@@ -12,6 +12,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import {
   Autocomplete,
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -26,10 +27,14 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
 import HugeIcon from '@/components/shared/HugeIcon';
-import { type OneLinkCreationType, validateOneLinkRedirectUrl } from '@/lib/onelinkLinksSchema';
+import {
+  type OneLinkCreationType,
+  type OneLinkRecord,
+  validateOneLinkRedirectUrl,
+} from '@/lib/onelinkLinksSchema';
 import { useSettings } from '@/lib/providers/SettingsContext';
 
 type ParameterRow = {
@@ -41,7 +46,46 @@ type ParameterRow = {
 type OneLinkStitchedPageProps = {
   creationType?: OneLinkCreationType;
   createActionLabel?: string;
+  mode?: 'create' | 'edit';
+  recordId?: string;
 };
+
+type OneLinkDetailResponse = {
+  error?: string;
+  record?: OneLinkRecord;
+  remote?: {
+    oneLinkData?: Record<string, string>;
+    shortLinkId?: string;
+    ttl?: string;
+  };
+};
+
+type OneLinkUpdateResponse = {
+  error?: string;
+  record?: OneLinkRecord;
+};
+
+const MAPPED_ONELINK_FIELDS = new Set([
+  'pid',
+  'c',
+  'af_adset',
+  'af_ad',
+  'af_channel',
+  'af_dp',
+  'af_web_dp',
+  'af_android_url',
+  'af_ios_url',
+  'af_force_deeplink',
+  'is_retargeting',
+  'af_og_title',
+  'af_og_description',
+  'af_og_image',
+]);
+
+function toBooleanFlag(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase() || '';
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
 
 const filledFieldSx = {
   '& .MuiOutlinedInput-root': {
@@ -85,8 +129,11 @@ const plainFieldSx = {
 function OneLinkStitchedPage({
   creationType = 'single_link',
   createActionLabel = 'Create Link',
+  mode = 'create',
+  recordId,
 }: OneLinkStitchedPageProps) {
   const { settings } = useSettings();
+  const isEditMode = mode === 'edit';
 
   const [templateId, setTemplateId] = useState('');
   const [campaignName, setCampaignName] = useState('');
@@ -113,11 +160,13 @@ function OneLinkStitchedPage({
     { id: 2, key: '', value: '' },
   ]);
   const [playStoreFallbackUrl, setPlayStoreFallbackUrl] = useState('');
+  const [ttl, setTtl] = useState('');
   const [createFeedback, setCreateFeedback] = useState<{ message: string; status: 'error' | 'success' } | null>(
     null,
   );
   const [isCreating, setIsCreating] = useState(false);
   const [showRequiredValidation, setShowRequiredValidation] = useState(false);
+  const [isInitialLoadPending, setIsInitialLoadPending] = useState(isEditMode);
 
   const resolvedTemplateId = useMemo(() => {
     const normalized = templateId.trim();
@@ -180,6 +229,105 @@ function OneLinkStitchedPage({
     [settings.presets.af_og_description],
   );
   const ogImageOptions = useMemo(() => settings.presets.af_og_image, [settings.presets.af_og_image]);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setIsInitialLoadPending(false);
+      return;
+    }
+
+    if (!recordId) {
+      setCreateFeedback({
+        message: 'Missing record ID for edit mode.',
+        status: 'error',
+      });
+      setIsInitialLoadPending(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadOneLinkForEdit = async () => {
+      setIsInitialLoadPending(true);
+      setCreateFeedback(null);
+
+      try {
+        const response = await fetch(`/api/onelinks/${encodeURIComponent(recordId)}`, {
+          cache: 'no-store',
+          method: 'GET',
+        });
+        const payload = (await response.json().catch(() => null)) as OneLinkDetailResponse | null;
+        if (!isMounted) {
+          return;
+        }
+
+        if (!response.ok || !payload?.record) {
+          setCreateFeedback({
+            message: payload?.error || 'Failed to load OneLink for editing.',
+            status: 'error',
+          });
+          return;
+        }
+
+        const record = payload.record;
+        const remoteData = payload.remote?.oneLinkData || {};
+        const customRows = Object.entries(remoteData)
+          .filter(([key]) => !MAPPED_ONELINK_FIELDS.has(key))
+          .map(([key, value], index) => ({
+            id: index + 1,
+            key,
+            value,
+          }));
+
+        setTemplateId(record.templateId);
+        setLinkName(record.linkName);
+        setBrandDomain(record.brandDomain || '');
+        setDismissedAutoBrandDomainTemplateId('');
+        setShortLinkId(payload.remote?.shortLinkId || '');
+        setMediaSource(remoteData.pid || record.mediaSource || '');
+        setCampaignName(remoteData.c || record.campaignName || '');
+        setAdSet(remoteData.af_adset || '');
+        setAdName(remoteData.af_ad || '');
+        setChannel(remoteData.af_channel || record.channel || '');
+        setDeepLinkUri(remoteData.af_dp || '');
+        setDesktopFallbackUrl(remoteData.af_web_dp || '');
+        setPlayStoreFallbackUrl(remoteData.af_android_url || '');
+        setIosFallbackUrl(remoteData.af_ios_url || '');
+        setForceDeeplink(toBooleanFlag(remoteData.af_force_deeplink));
+        setIsRetargeting(toBooleanFlag(remoteData.is_retargeting));
+        setOgTitle(remoteData.af_og_title || '');
+        setOgDescription(remoteData.af_og_description || '');
+        setOgImage(remoteData.af_og_image || '');
+        setTtl(payload.remote?.ttl || '');
+        setParameters(
+          customRows.length > 0
+            ? customRows
+            : [
+                { id: 1, key: '', value: '' },
+                { id: 2, key: '', value: '' },
+              ],
+        );
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+        setCreateFeedback({
+          message: 'Failed to load OneLink for editing.',
+          status: 'error',
+        });
+      } finally {
+        if (isMounted) {
+          setIsInitialLoadPending(false);
+        }
+      }
+    };
+
+    void loadOneLinkForEdit();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isEditMode, recordId]);
 
   const shortLink = useMemo(() => {
     const resolvedShortLinkId = shortLinkId.trim() || 'short-link-id';
@@ -329,7 +477,7 @@ function OneLinkStitchedPage({
   };
 
   const handleCreateLink = async () => {
-    if (isCreating) {
+    if (isCreating || isInitialLoadPending) {
       return;
     }
 
@@ -344,41 +492,83 @@ function OneLinkStitchedPage({
     setCreateFeedback(null);
 
     try {
-      const response = await fetch('/api/onelinks', {
-        body: JSON.stringify({
-          brandDomain: resolvedBrandDomain,
-          campaignName,
-          channel,
-          creationType,
-          linkName: requiredLinkName,
-          longUrlPreview: generatedLongUrl,
-          mediaSource: requiredMediaSource,
-          oneLinkData,
-          shortLinkId,
-          templateId: requiredTemplateId,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
+      if (isEditMode) {
+        if (!recordId) {
+          setCreateFeedback({
+            message: 'Missing record ID for update.',
+            status: 'error',
+          });
+          return;
+        }
 
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setCreateFeedback({
-          message: payload?.error || 'Failed to save OneLink.',
-          status: 'error',
+        const response = await fetch(`/api/onelinks/${encodeURIComponent(recordId)}`, {
+          body: JSON.stringify({
+            brandDomain: resolvedBrandDomain,
+            linkName: requiredLinkName,
+            oneLinkData,
+            ttl,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          method: 'PUT',
         });
-        return;
-      }
+        const payload = (await response.json().catch(() => null)) as OneLinkUpdateResponse | null;
 
-      setCreateFeedback({
-        message: 'OneLink has been saved to OneLink Management.',
-        status: 'success',
-      });
+        if (!response.ok) {
+          setCreateFeedback({
+            message: payload?.error || 'Failed to update OneLink.',
+            status: 'error',
+          });
+          return;
+        }
+
+        if (payload?.record) {
+          setBrandDomain(payload.record.brandDomain);
+          setLinkName(payload.record.linkName);
+        }
+
+        setCreateFeedback({
+          message: 'OneLink has been updated successfully.',
+          status: 'success',
+        });
+      } else {
+        const response = await fetch('/api/onelinks', {
+          body: JSON.stringify({
+            brandDomain: resolvedBrandDomain,
+            campaignName,
+            channel,
+            creationType,
+            linkName: requiredLinkName,
+            longUrlPreview: generatedLongUrl,
+            mediaSource: requiredMediaSource,
+            oneLinkData,
+            shortLinkId,
+            templateId: requiredTemplateId,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          setCreateFeedback({
+            message: payload?.error || 'Failed to save OneLink.',
+            status: 'error',
+          });
+          return;
+        }
+
+        setCreateFeedback({
+          message: 'OneLink has been saved to OneLink Management.',
+          status: 'success',
+        });
+      }
     } catch {
       setCreateFeedback({
-        message: 'Failed to save OneLink.',
+        message: isEditMode ? 'Failed to update OneLink.' : 'Failed to save OneLink.',
         status: 'error',
       });
     } finally {
@@ -409,6 +599,7 @@ function OneLinkStitchedPage({
     required = false,
     hasError = false,
     errorMessage?: string,
+    disabled = false,
   ) => (
     <Box>
       <Typography sx={ { fontSize: 13, fontWeight: 500, mb: 0.75 } }>
@@ -420,6 +611,7 @@ function OneLinkStitchedPage({
         ) : null}
       </Typography>
       <Autocomplete<string, false, false, true>
+        disabled={ disabled }
         forcePopupIcon
         freeSolo
         fullWidth
@@ -434,6 +626,7 @@ function OneLinkStitchedPage({
             helperText={ hasError ? errorMessage : undefined }
             placeholder={ placeholder }
             sx={ filledFieldSx }
+            disabled={ disabled }
           />
         ) }
         value={ value }
@@ -442,7 +635,7 @@ function OneLinkStitchedPage({
   );
 
   return (
-    <ConsoleLayout title='Create New OneLink'>
+    <ConsoleLayout title={ isEditMode ? 'Edit OneLink' : 'Create New OneLink' }>
       <Box
         sx={ {
           display: 'flex',
@@ -465,6 +658,9 @@ function OneLinkStitchedPage({
             } }
           >
             <Stack spacing={ 4 }>
+              {isEditMode && isInitialLoadPending ? (
+                <Alert severity='info'>Loading OneLink data for edit...</Alert>
+              ) : null}
               <Box>
                 <Box sx={ { mb: 3 } }>
                   <Typography sx={ { fontSize: 22, fontWeight: 600 } }>Link Setup</Typography>
@@ -490,6 +686,8 @@ function OneLinkStitchedPage({
                       'e.g. Summer Campaign 2024',
                       true,
                       hasLinkNameError,
+                      undefined,
+                      isInitialLoadPending,
                     )}
                     {renderAutocompleteField(
                       'Short Link ID',
@@ -497,6 +695,10 @@ function OneLinkStitchedPage({
                       setShortLinkId,
                       shortLinkIdOptions,
                       'e.g. abc123',
+                      false,
+                      false,
+                      undefined,
+                      isEditMode || isInitialLoadPending,
                     )}
                   </Box>
 
@@ -519,10 +721,13 @@ function OneLinkStitchedPage({
                       'Select or type template ID',
                       true,
                       hasTemplateIdError,
+                      undefined,
+                      isEditMode || isInitialLoadPending,
                     )}
                     <Box>
                       <Typography sx={ { fontSize: 13, fontWeight: 500, mb: 0.75 } }>Brand Domain</Typography>
                       <Autocomplete<string, false, false, true>
+                        disabled={ isInitialLoadPending }
                         forcePopupIcon
                         freeSolo
                         fullWidth
@@ -937,7 +1142,9 @@ function OneLinkStitchedPage({
                       mt: 0.75,
                     } }
                   >
-                    Short links are available only after link creation.
+                    {isEditMode
+                      ? 'Short link is fixed for this existing OneLink.'
+                      : 'Short links are available only after link creation.'}
                   </Typography>
                 </Box>
 
@@ -987,6 +1194,7 @@ function OneLinkStitchedPage({
             </Paper>
 
             <Button
+              disabled={ isInitialLoadPending || isCreating }
               onClick={ () => {
                 void handleCreateLink();
               } }
@@ -1000,7 +1208,7 @@ function OneLinkStitchedPage({
               } }
               variant='contained'
             >
-              {isCreating ? 'Saving...' : createActionLabel}
+              {isInitialLoadPending ? 'Loading...' : isCreating ? 'Saving...' : createActionLabel}
             </Button>
             {showRequiredValidation && hasMissingRequiredField ? (
               <Typography

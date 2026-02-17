@@ -8,23 +8,20 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   InputAdornment,
   Menu,
   MenuItem,
   Paper,
   Stack,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tabs,
   TextField,
   Typography,
 } from '@mui/material';
@@ -33,11 +30,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
 import HugeIcon from '@/components/shared/HugeIcon';
-import {
-  sanitizeOneLinkRecords,
-  type OneLinkCreationType,
-  type OneLinkRecord,
-} from '@/lib/onelinkLinksSchema';
+import { type OneLinkCreationType, sanitizeOneLinkRecords, type OneLinkRecord } from '@/lib/onelinkLinksSchema';
 
 const searchFieldSx = {
   '& .MuiOutlinedInput-root': {
@@ -72,22 +65,6 @@ type FilterChipSelectProps<T extends string> = {
   onChange: (value: T) => void;
   options: ReadonlyArray<FilterChipOption<T>>;
   value: T;
-};
-
-type OneLinkDetailResponse = {
-  error?: string;
-  record?: OneLinkRecord;
-  remote?: {
-    expiry?: string;
-    oneLinkData?: Record<string, string>;
-    shortLinkId?: string;
-    ttl?: string;
-  };
-};
-
-type OneLinkUpdateResponse = {
-  error?: string;
-  record?: OneLinkRecord;
 };
 
 type OneLinkDeleteResponse = {
@@ -163,13 +140,6 @@ function FilterChipSelect<T extends string>({
   );
 }
 
-function getCreationTypeLabel(type: OneLinkCreationType): string {
-  if (type === 'link_group') {
-    return 'Link group';
-  }
-  return 'Single link';
-}
-
 function formatCreatedAt(value: string): string {
   const timestamp = Date.parse(value);
   if (Number.isNaN(timestamp)) {
@@ -178,43 +148,9 @@ function formatCreatedAt(value: string): string {
   return new Date(timestamp).toLocaleString();
 }
 
-function parseOneLinkDataJson(value: string): { error?: string; value?: Record<string, string> } {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    return { error: 'OneLink data JSON is invalid.' };
-  }
-
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return { error: 'OneLink data must be a JSON object.' };
-  }
-
-  const normalized: Record<string, string> = {};
-  for (const [key, rawValue] of Object.entries(parsed as Record<string, unknown>)) {
-    const normalizedKey = key.trim();
-    if (!normalizedKey) {
-      continue;
-    }
-
-    if (typeof rawValue === 'string') {
-      normalized[normalizedKey] = rawValue;
-      continue;
-    }
-
-    if (rawValue == null) {
-      normalized[normalizedKey] = '';
-      continue;
-    }
-
-    normalized[normalizedKey] = String(rawValue);
-  }
-
-  if (!normalized.pid?.trim()) {
-    return { error: 'OneLink data must include pid (media source).' };
-  }
-
-  return { value: normalized };
+function buildEditHref(record: OneLinkRecord): string {
+  const routeSegment = record.creationType === 'link_group' ? 'link-group' : 'single-link';
+  return `/create/${routeSegment}/${encodeURIComponent(record.id)}`;
 }
 
 /**
@@ -230,19 +166,10 @@ function OneLinkListPage() {
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [creationTypeFilter, setCreationTypeFilter] = useState<'all' | OneLinkCreationType>('all');
+  const [activeCreationTypeTab, setActiveCreationTypeTab] = useState<OneLinkCreationType>('single_link');
   const [templateFilter, setTemplateFilter] = useState('all');
   const [copiedRecordId, setCopiedRecordId] = useState('');
   const [activeRecordId, setActiveRecordId] = useState('');
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [isEditorLoading, setIsEditorLoading] = useState(false);
-  const [isEditorSaving, setIsEditorSaving] = useState(false);
-  const [editorError, setEditorError] = useState('');
-  const [editingRecord, setEditingRecord] = useState<OneLinkRecord | null>(null);
-  const [editorLinkName, setEditorLinkName] = useState('');
-  const [editorBrandDomain, setEditorBrandDomain] = useState('');
-  const [editorTtl, setEditorTtl] = useState('');
-  const [editorOneLinkDataJson, setEditorOneLinkDataJson] = useState('{}');
 
   const loadRecords = useCallback(async () => {
     setIsLoading(true);
@@ -274,18 +201,23 @@ function OneLinkListPage() {
     void loadRecords();
   }, [loadRecords]);
 
+  useEffect(() => {
+    setTemplateFilter('all');
+  }, [activeCreationTypeTab]);
+
+  const tabRecords = useMemo(
+    () => records.filter((record) => record.creationType === activeCreationTypeTab),
+    [activeCreationTypeTab, records],
+  );
+
   const templateOptions = useMemo(
     () =>
-      [...new Set(records.map((record) => record.templateId))]
+      [...new Set(tabRecords.map((record) => record.templateId))]
         .filter(Boolean)
         .sort((first, second) => first.localeCompare(second)),
-    [records],
+    [tabRecords],
   );
-  const creationTypeOptions: ReadonlyArray<FilterChipOption<'all' | OneLinkCreationType>> = [
-    { label: 'All types', value: 'all' },
-    { label: 'Single link', value: 'single_link' },
-    { label: 'Link group', value: 'link_group' },
-  ];
+
   const templateFilterOptions = useMemo<ReadonlyArray<FilterChipOption<string>>>(
     () => [
       { label: 'All templates', value: 'all' },
@@ -297,13 +229,11 @@ function OneLinkListPage() {
   const filteredRecords = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
 
-    return records.filter((record) => {
-      if (creationTypeFilter !== 'all' && record.creationType !== creationTypeFilter) {
-        return false;
-      }
+    return tabRecords.filter((record) => {
       if (templateFilter !== 'all' && record.templateId !== templateFilter) {
         return false;
       }
+
       if (!keyword) {
         return true;
       }
@@ -316,14 +246,13 @@ function OneLinkListPage() {
         record.mediaSource,
         record.campaignName,
         record.channel,
-        getCreationTypeLabel(record.creationType),
       ]
         .join(' ')
         .toLowerCase();
 
       return searchSource.includes(keyword);
     });
-  }, [creationTypeFilter, records, searchKeyword, templateFilter]);
+  }, [searchKeyword, tabRecords, templateFilter]);
 
   const handleCopyShortLink = async (record: OneLinkRecord) => {
     try {
@@ -337,126 +266,8 @@ function OneLinkListPage() {
     }
   };
 
-  const closeEditor = () => {
-    setIsEditorOpen(false);
-    setIsEditorLoading(false);
-    setIsEditorSaving(false);
-    setEditorError('');
-    setEditorLinkName('');
-    setEditorBrandDomain('');
-    setEditorTtl('');
-    setEditorOneLinkDataJson('{}');
-    setEditingRecord(null);
-  };
-
-  const handleOpenEditor = async (record: OneLinkRecord) => {
-    setIsEditorOpen(true);
-    setIsEditorLoading(true);
-    setEditorError('');
-    setEditingRecord(record);
-    setEditorLinkName(record.linkName);
-    setEditorBrandDomain(record.brandDomain || '');
-    setEditorTtl('');
-    setEditorOneLinkDataJson(
-      JSON.stringify(
-        {
-          af_channel: record.channel || '',
-          c: record.campaignName || '',
-          pid: record.mediaSource || '',
-        },
-        null,
-        2,
-      ),
-    );
-
-    try {
-      const response = await fetch(`/api/onelinks/${encodeURIComponent(record.id)}`, {
-        cache: 'no-store',
-        method: 'GET',
-      });
-      const payload = (await response.json().catch(() => null)) as OneLinkDetailResponse | null;
-
-      if (!response.ok) {
-        setEditorError(payload?.error || 'Failed to load OneLink detail.');
-        return;
-      }
-
-      const remoteData = payload?.remote?.oneLinkData || {};
-      setEditorOneLinkDataJson(
-        JSON.stringify(
-          Object.keys(remoteData).length
-            ? remoteData
-            : {
-                af_channel: record.channel || '',
-                c: record.campaignName || '',
-                pid: record.mediaSource || '',
-              },
-          null,
-          2,
-        ),
-      );
-      setEditorTtl(payload?.remote?.ttl || '');
-    } catch {
-      setEditorError('Failed to load OneLink detail.');
-    } finally {
-      setIsEditorLoading(false);
-    }
-  };
-
-  const handleSaveEditor = async () => {
-    if (!editingRecord || isEditorSaving || isEditorLoading) {
-      return;
-    }
-
-    const parsedData = parseOneLinkDataJson(editorOneLinkDataJson);
-    if (!parsedData.value) {
-      setEditorError(parsedData.error || 'OneLink data JSON is invalid.');
-      return;
-    }
-
-    setIsEditorSaving(true);
-    setEditorError('');
-
-    try {
-      const response = await fetch(`/api/onelinks/${encodeURIComponent(editingRecord.id)}`, {
-        body: JSON.stringify({
-          brandDomain: editorBrandDomain,
-          linkName: editorLinkName,
-          oneLinkData: parsedData.value,
-          ttl: editorTtl,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'PUT',
-      });
-      const payload = (await response.json().catch(() => null)) as OneLinkUpdateResponse | null;
-
-      if (!response.ok) {
-        setEditorError(payload?.error || 'Failed to update OneLink.');
-        return;
-      }
-
-      if (payload?.record) {
-        setRecords((previous) =>
-          previous.map((item) => (item.id === editingRecord.id ? payload.record || item : item)),
-        );
-      } else {
-        await loadRecords();
-      }
-
-      setActionSuccess('OneLink has been updated.');
-      setActionError('');
-      closeEditor();
-    } catch {
-      setEditorError('Failed to update OneLink.');
-    } finally {
-      setIsEditorSaving(false);
-    }
-  };
-
   const handleDeleteRecord = async (record: OneLinkRecord) => {
-    if (activeRecordId || isEditorSaving) {
+    if (activeRecordId) {
       return;
     }
 
@@ -507,6 +318,39 @@ function OneLinkListPage() {
             } }
           >
             <Stack spacing={ 1.25 }>
+              <Stack
+                alignItems='center'
+                direction={ { md: 'row', xs: 'column' } }
+                justifyContent='space-between'
+                spacing={ 1 }
+              >
+                <Tabs
+                  aria-label='OneLink type tabs'
+                  onChange={ (_, value) => {
+                    setActiveCreationTypeTab(value as OneLinkCreationType);
+                  } }
+                  sx={ {
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    minHeight: 44,
+                    width: { md: 'auto', xs: '100%' },
+                    '& .MuiTab-root': {
+                      fontSize: 13,
+                      fontWeight: 600,
+                      minHeight: 44,
+                      px: 1.5,
+                      textTransform: 'none',
+                    },
+                  } }
+                  value={ activeCreationTypeTab }
+                >
+                  <Tab label='Single Link' value='single_link' />
+                  <Tab label='Link Group' value='link_group' />
+                </Tabs>
+                <Button component={ Link } href='/create' size='small' variant='contained'>
+                  Create OneLink
+                </Button>
+              </Stack>
               <TextField
                 fullWidth
                 onChange={ (event) => setSearchKeyword(event.target.value) }
@@ -523,36 +367,20 @@ function OneLinkListPage() {
                 sx={ searchFieldSx }
                 value={ searchKeyword }
               />
-              <Stack
-                alignItems='center'
-                direction={ { md: 'row', xs: 'column' } }
-                justifyContent='space-between'
-                spacing={ 1 }
-              >
-                <Stack direction='row' spacing={ 1 } sx={ { flexWrap: 'wrap', rowGap: 1 } }>
-                  <FilterChipSelect
-                    label='Type'
-                    onChange={ setCreationTypeFilter }
-                    options={ creationTypeOptions }
-                    value={ creationTypeFilter }
-                  />
-                  <FilterChipSelect
-                    label='Template'
-                    onChange={ setTemplateFilter }
-                    options={ templateFilterOptions }
-                    value={ templateFilter }
-                  />
-                </Stack>
-                <Button component={ Link } href='/create' size='small' variant='contained'>
-                  Create OneLink
-                </Button>
+              <Stack direction='row' spacing={ 1 } sx={ { flexWrap: 'wrap', rowGap: 1 } }>
+                <FilterChipSelect
+                  label='Template'
+                  onChange={ setTemplateFilter }
+                  options={ templateFilterOptions }
+                  value={ templateFilter }
+                />
               </Stack>
             </Stack>
           </Paper>
 
           <Box sx={ { display: 'flex', justifyContent: 'space-between', px: 0.5 } }>
             <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>
-              {`Showing ${filteredRecords.length} / ${records.length} records`}
+              {`Showing ${filteredRecords.length} / ${tabRecords.length} records`}
             </Typography>
             {isLoading && (
               <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>Loading...</Typography>
@@ -586,13 +414,12 @@ function OneLinkListPage() {
           {filteredRecords.length > 0 ? (
             <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 0.75 } }>
               <TableContainer>
-                <Table sx={ { minWidth: 1200 } }>
+                <Table sx={ { minWidth: 1100 } }>
                   <TableHead>
                     <TableRow>
                       <TableCell>Created</TableCell>
                       <TableCell>Link Name</TableCell>
                       <TableCell>Template</TableCell>
-                      <TableCell>Type</TableCell>
                       <TableCell>Media Source</TableCell>
                       <TableCell>Campaign</TableCell>
                       <TableCell>Short Link</TableCell>
@@ -606,18 +433,6 @@ function OneLinkListPage() {
                         <TableCell sx={ { whiteSpace: 'nowrap' } }>{formatCreatedAt(record.createdAt)}</TableCell>
                         <TableCell>{record.linkName}</TableCell>
                         <TableCell>{record.templateId}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={ getCreationTypeLabel(record.creationType) }
-                            size='small'
-                            sx={ {
-                              borderRadius: 0.5,
-                              fontSize: 12,
-                              fontWeight: 500,
-                            } }
-                            variant='outlined'
-                          />
-                        </TableCell>
                         <TableCell>{record.mediaSource || '-'}</TableCell>
                         <TableCell>{record.campaignName || '-'}</TableCell>
                         <TableCell sx={ { maxWidth: 300 } }>
@@ -657,18 +472,12 @@ function OneLinkListPage() {
                         </TableCell>
                         <TableCell align='right'>
                           <Stack direction='row' justifyContent='flex-end' spacing={ 0.5 }>
-                            <Button
-                              disabled={ activeRecordId === record.id || isEditorSaving }
-                              onClick={ () => {
-                                void handleOpenEditor(record);
-                              } }
-                              size='small'
-                            >
+                            <Button component={ Link } href={ buildEditHref(record) } size='small'>
                               Manage
                             </Button>
                             <Button
                               color='error'
-                              disabled={ activeRecordId === record.id || isEditorSaving }
+                              disabled={ activeRecordId === record.id }
                               onClick={ () => {
                                 void handleDeleteRecord(record);
                               } }
@@ -687,61 +496,6 @@ function OneLinkListPage() {
           ) : null}
         </Stack>
       </Box>
-
-      <Dialog fullWidth maxWidth='md' onClose={ closeEditor } open={ isEditorOpen }>
-        <DialogTitle>Manage OneLink</DialogTitle>
-        <DialogContent dividers>
-          {isEditorLoading ? (
-            <Typography sx={ { color: 'text.secondary', fontSize: 14 } }>Loading details...</Typography>
-          ) : (
-            <Stack spacing={ 2 }>
-              {editorError ? <Alert severity='error'>{editorError}</Alert> : null}
-              <TextField
-                fullWidth
-                label='Link Name'
-                onChange={ (event) => setEditorLinkName(event.target.value) }
-                value={ editorLinkName }
-              />
-              <TextField
-                fullWidth
-                helperText='Leave empty to use the default OneLink domain.'
-                label='Brand Domain'
-                onChange={ (event) => setEditorBrandDomain(event.target.value) }
-                placeholder='example.com'
-                value={ editorBrandDomain }
-              />
-              <TextField
-                fullWidth
-                helperText='Optional. Example: 10m, 20h, 14d'
-                label='TTL'
-                onChange={ (event) => setEditorTtl(event.target.value) }
-                value={ editorTtl }
-              />
-              <TextField
-                fullWidth
-                helperText='JSON object for OneLink payload (pid is required).'
-                label='OneLink Data JSON'
-                minRows={ 12 }
-                multiline
-                onChange={ (event) => setEditorOneLinkDataJson(event.target.value) }
-                value={ editorOneLinkDataJson }
-              />
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={ closeEditor }>Cancel</Button>
-          <Button
-            disabled={ isEditorLoading || isEditorSaving || !editingRecord }
-            onClick={ () => {
-              void handleSaveEditor();
-            } }
-            variant='contained'
-          >
-            Save changes
-          </Button>
-        </DialogActions>
-      </Dialog>
     </ConsoleLayout>
   );
 }

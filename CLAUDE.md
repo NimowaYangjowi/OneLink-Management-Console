@@ -22,6 +22,7 @@
 
 - When creating a new folder, always add a `CLAUDE.md` inside it describing the folder's role and contents.
 - When creating a new file, always include a brief summary comment at the top of the file explaining its purpose.
+- When any single document (`.md`, `CLAUDE.md`, PRD, spec, etc.) exceeds **600 lines**, split it into a main document and sub-documents in a dedicated folder. The main document should contain a summary and link to each sub-document.
 
 ## Working Directories
 
