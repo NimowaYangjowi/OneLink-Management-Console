@@ -1,66 +1,45 @@
 # Design System Unification
 
-## Why this exists
+## Purpose
 
-Design-system information was split across:
-- `design/design-system.pen` (Pencil source)
-- `.claude/skills/design-system` (assistant behavior and references)
-
-This document defines the unification model and current migration status.
+Keep one authoritative design source while ensuring runtime tokens and docs stay synchronized.
 
 ## Single Source Of Truth
 
-- Source of truth: `design/design-system.pen`
-- Canonical extracted outputs:
+- Source: `design/design-system.pen`
+- Active page composition anchor: `src/components/onelink/OneLinkStitchedPage.tsx`
+
+The page implementation should follow `.pen`, and when style direction changes in the page, update `.pen` first (or back-port to `.pen` immediately) before finalizing runtime tokens.
+
+## Sync Pipeline
+
+Commands:
+
+```bash
+pnpm tokens:apply-stitch-theme
+pnpm tokens:sync
+```
+
+- `tokens:apply-stitch-theme`
+  - Script: `scripts/apply-onelink-stitch-theme-to-pen.mjs`
+  - Purpose: back-port current stitched page Light-mode palette to `.pen` variables.
+- `tokens:sync`
+  - Script: `scripts/sync-pen-tokens.mjs`
+  - Purpose: generate runtime/doc token artifacts directly from `.pen`.
+
+## Generated Artifacts
+
+- Snapshot artifacts:
   - `design/tokens/design-tokens.generated.json`
   - `design/tokens/design-tokens.generated.md`
-- Refresh command:
-  - `pnpm tokens:sync`
-
-## Current Scope
-
-`design-system.pen` currently defines variable tokens and theme axes:
-- `Mode`: `Light`, `Dark`
-- `Base`: `Neutral`, `Gray`, `Stone`, `Zinc`, `Slate`
-- `Accent`: `Default`, `Red`, `Rose`, `Orange`, `Green`, `Blue`, `Yellow`, `Violet`
-
-Current token extraction focuses on these variables (primarily color tokens).
-
-## Implemented in this change
-
-1. Added token sync automation:
-   - `scripts/sync-pen-tokens.mjs`
-   - `scripts/normalize-pen-fallbacks.mjs`
-   - `pnpm tokens:sync`
-   - `pnpm tokens:normalize-pen`
-2. Added generated token artifacts under `design/tokens/`.
-3. Added generated runtime token artifacts:
-   - `src/styles/tokens/pen-tokens.generated.css`
-   - `src/styles/tokens/pen-tokens.generated.ts`
-4. Updated root docs (`README.md`, `CLAUDE.md`) to point to the same source and sync workflow.
-5. Updated `.claude/skills/design-system` references to consume generated token outputs instead of hardcoded, drifting values.
-6. Connected runtime token consumption:
-   - `src/styles/themes/default.ts` uses generated TS tokens
-   - `src/app/globals.css` imports generated CSS variables
+- Runtime artifacts:
+  - `src/styles/tokens/design-tokens.css`
+  - `src/styles/tokens/design-tokens.ts`
 
 ## Operating Rules
 
-1. For token values and theme-axis variants, use generated files only.
-2. If `design/design-system.pen` changes, run `pnpm tokens:sync` before editing docs or skill references.
-3. If generated output changed, update affected implementation/theme files in a separate, explicit follow-up.
-
-## Fallback Status
-
-Ambiguous unscoped fallback values were normalized using:
-
-```bash
-pnpm tokens:normalize-pen
-```
-
-Current generated warning state is expected to be empty:
-- `design/tokens/design-tokens.generated.json` → `warnings.ambiguousFallbackTokens: []`
-
-## Recommended Next Phase
-
-1. Add CI step to fail when generated token files are stale.
-2. Add a small visual regression check for token-dependent core components.
+1. Do not manually edit generated token artifacts.
+2. After any `.pen` token change, run `pnpm tokens:sync`.
+3. Before updating docs/skills that reference token values, ensure generated artifacts are refreshed.
+4. In page/component code, use `theme.palette` or `pencilTokens`; avoid hardcoded hex values.
+5. Use HugeIcons by default (`src/components/shared/HugeIcon.tsx`) and Lucide only as fallback.

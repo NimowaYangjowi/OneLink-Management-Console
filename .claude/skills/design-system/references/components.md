@@ -1,291 +1,72 @@
 # Component Guidelines
 
-컴포넌트 스타일링 가이드.
+This reference defines implementation rules for the current OneLink page composition.
 
-Source of truth: `design/design-system.pen` (Pencil MCP로 읽기).
-Runtime tokens: `src/styles/tokens/design-tokens.ts` + `design-tokens.css`.
+## Current Composition Anchor
 
-## 컴포넌트 생성 원칙
+- Primary page: `src/components/onelink/OneLinkStitchedPage.tsx`
+- Source of truth for tokens/composition: `design/design-system.pen`
 
-### 0. .pen 컴포넌트 확인 우선 (MUST)
+## Core Rules
 
-새 컴포넌트 생성 또는 수정 전 반드시:
-1. Pencil MCP `batch_get`으로 `design/design-system.pen`의 reusable 컴포넌트 목록 확인
-2. 해당하는 .pen 컴포넌트가 있으면 `readDepth: 2`로 구조/스타일 읽기
-3. .pen 스펙에 맞춰 MUI로 구현
+1. Build UI with MUI primitives and `sx`.
+2. Use `theme.palette.*` (or `pencilTokens`) for color values.
+3. Do not hardcode hex values in component code.
+4. Keep default UI states neutral; reserve point colors for explicit semantic meaning.
+5. Keep border radius and shadows aligned with `src/styles/themes/default.ts`.
 
-### 1. 기존 컴포넌트 재활용 우선
+## Icons
 
-새 컴포넌트 생성 전 반드시 확인:
-- `.pen` 파일에서 매칭되는 reusable 컴포넌트 검색
-- `src/components/` 에서 기존 구현 검색
-- 기존 컴포넌트 확장/합성으로 해결 가능한지 검토
+### HugeIcons first
 
-### 2. MUI 기반
+```tsx
+import { Settings02Icon } from '@hugeicons/core-free-icons';
+import HugeIcon from '@/components/shared/HugeIcon';
 
-- 모든 기본 컴포넌트는 MUI 사용
-- 스타일은 sx prop 사용
-- styled-components, emotion css 직접 사용 지양
-- `.pen` 컴포넌트의 속성값(padding, gap, cornerRadius 등)을 MUI sx prop으로 변환
-
-### 3. 중립색 기본
-
-**컴포넌트 기본 상태는 모두 중립색으로.**
-
-## Button
-
-### Primary Button (CTA)
-
-```jsx
-// ✅ CTA 버튼만 primary 색상
-<Button variant="contained" color="primary">
-  저장하기
-</Button>
+<HugeIcon icon={Settings02Icon} size={20} color="currentColor" />
 ```
 
-### Secondary Button
+### Lucide fallback (only when HugeIcons replacement is not available)
 
-```jsx
-// ✅ 보조 액션은 outlined + 중립색
-<Button
-  variant="outlined"
-  sx={{
-    borderColor: 'divider',
-    color: 'text.primary',
-    '&:hover': {
-      borderColor: 'text.secondary',
-      backgroundColor: 'grey.50',
+```tsx
+import { Orbit } from 'lucide-react';
+import HugeIcon from '@/components/shared/HugeIcon';
+
+<HugeIcon fallback={Orbit} size={20} color="currentColor" />
+```
+
+### Do not
+
+- Import `lucide-react` directly in feature UI when `HugeIcon` is sufficient.
+- Mix multiple icon systems in one component unless there is an explicit fallback reason.
+
+## Form Controls
+
+Use one shared field style shape and bind colors to theme tokens:
+
+```tsx
+const fieldSx = {
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: 'background.default',
+    borderRadius: 0.5,
+    '& fieldset': { borderColor: 'divider' },
+    '&:hover fieldset': { borderColor: 'divider' },
+    '&.Mui-focused fieldset': {
+      borderColor: 'primary.main',
+      borderWidth: 1,
     },
-  }}
->
-  취소
-</Button>
+  },
+};
 ```
 
-### Text Button
+## Section/Card Surfaces
 
-```jsx
-<Button
-  variant="text"
-  sx={{
-    color: 'text.primary',
-    '&:hover': {
-      backgroundColor: 'grey.100',
-    },
-  }}
->
-  더보기
-</Button>
-```
+- Use `Paper` with `elevation={0}` and explicit `borderColor: 'divider'`.
+- Prefer `background.default` for muted blocks and `background.paper` for primary surfaces.
 
-## Card
+## Review Checklist
 
-```jsx
-<Card sx={{
-  borderRadius: 0,  // Sharp corners
-  boxShadow: theme => theme.customShadows.lg,  // Dimmed shadow
-  border: '1px solid',
-  borderColor: 'divider',
-}}>
-  <CardContent sx={{ p: 3 }}>
-    <Typography variant="h5" color="text.primary" gutterBottom>
-      제목
-    </Typography>
-    <Typography variant="body2" color="text.secondary">
-      설명
-    </Typography>
-  </CardContent>
-</Card>
-```
-
-## TextField
-
-### 기본 상태
-
-```jsx
-<TextField
-  label="이름"
-  variant="outlined"
-  sx={{
-    '& .MuiOutlinedInput-root': {
-      borderRadius: 0,
-      '& fieldset': {
-        borderColor: 'divider',
-      },
-      '&:hover fieldset': {
-        borderColor: 'text.secondary',
-      },
-      '&.Mui-focused fieldset': {
-        borderColor: 'text.primary',
-        borderWidth: 1,
-      },
-    },
-  }}
-/>
-```
-
-### 에러 상태 (포인트 컬러 허용)
-
-```jsx
-<TextField
-  error
-  label="이메일"
-  helperText="올바른 이메일 형식이 아닙니다"
-/>
-```
-
-## Select
-
-```jsx
-<Select
-  sx={{
-    borderRadius: 0,
-    '& .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'divider',
-    },
-    '&:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'text.secondary',
-    },
-  }}
->
-  <MenuItem value={1}>옵션 1</MenuItem>
-  <MenuItem value={2}>옵션 2</MenuItem>
-</Select>
-```
-
-## Tabs
-
-```jsx
-<Tabs
-  value={value}
-  onChange={handleChange}
-  sx={{
-    '& .MuiTabs-indicator': {
-      backgroundColor: 'text.primary',
-    },
-  }}
->
-  <Tab
-    label="탭 1"
-    sx={{
-      color: 'text.secondary',
-      '&.Mui-selected': {
-        color: 'text.primary',
-      },
-    }}
-  />
-  <Tab label="탭 2" sx={{ color: 'text.secondary', '&.Mui-selected': { color: 'text.primary' } }} />
-</Tabs>
-```
-
-## List
-
-```jsx
-<List>
-  <ListItem
-    sx={{
-      '&:hover': { backgroundColor: 'grey.100' },
-      '&.Mui-selected': {
-        backgroundColor: 'grey.200',
-        '&:hover': { backgroundColor: 'grey.200' },
-      },
-    }}
-  >
-    <ListItemIcon sx={{ color: 'text.secondary' }}>
-      <FolderIcon />
-    </ListItemIcon>
-    <ListItemText
-      primary="폴더명"
-      secondary="10 items"
-      primaryTypographyProps={{ color: 'text.primary' }}
-      secondaryTypographyProps={{ color: 'text.secondary' }}
-    />
-  </ListItem>
-</List>
-```
-
-## Chip
-
-```jsx
-// 기본 Chip (중립색)
-<Chip
-  label="태그"
-  sx={{
-    backgroundColor: 'grey.100',
-    color: 'text.primary',
-    borderRadius: '4px',  // Chip만 예외적으로 약간의 radius
-  }}
-/>
-
-// 상태 Chip (포인트 컬러 허용)
-<Chip
-  label="완료"
-  sx={{
-    backgroundColor: 'success.light',
-    color: 'success.dark',
-    borderRadius: '4px',
-  }}
-/>
-```
-
-## Dialog
-
-```jsx
-<Dialog
-  PaperProps={{
-    sx: {
-      borderRadius: 0,
-      boxShadow: theme => theme.customShadows.xl,
-    },
-  }}
->
-  <DialogTitle sx={{ color: 'text.primary' }}>
-    제목
-  </DialogTitle>
-  <DialogContent>
-    <Typography color="text.secondary">
-      내용
-    </Typography>
-  </DialogContent>
-  <DialogActions>
-    <Button sx={{ color: 'text.secondary' }}>취소</Button>
-    <Button variant="contained" color="primary">확인</Button>
-  </DialogActions>
-</Dialog>
-```
-
-## Icon 사용
-
-### lucide-react 아이콘
-
-```jsx
-import { Settings, User, FileText } from 'lucide-react';
-
-// 기본 아이콘 (text.secondary)
-<Settings size={20} color="currentColor" style={{ color: theme.palette.text.secondary }} />
-
-// MUI Box와 함께
-<Box sx={{ color: 'text.secondary', display: 'flex' }}>
-  <Settings size={20} />
-</Box>
-
-// hover 시 색상 변경
-<Box sx={{
-  color: 'text.secondary',
-  '&:hover': { color: 'text.primary' },
-  cursor: 'pointer',
-}}>
-  <Settings size={20} />
-</Box>
-```
-
-### ❌ 금지
-
-```jsx
-// ❌ 커스텀 SVG 생성
-<svg viewBox="0 0 24 24">...</svg>
-
-// ❌ 다른 아이콘 라이브러리
-import { FaUser } from 'react-icons/fa';
-```
-
+1. Token usage is palette-based (`theme.palette` or `pencilTokens`).
+2. Icons use HugeIcons via `HugeIcon`.
+3. No direct hex color literals in page components.
+4. Layout/spacing values are consistent with `.pen` structure.

@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: OneLinkManagingConsole design-system workflow. Use for UI styling, MUI theme work, token mapping, and component implementation. The .pen file is the single source of truth for both tokens and component specs. Always read .pen components before building UI.
+description: OneLinkManagingConsole design-system workflow. Use for UI styling, MUI theme work, token mapping, and component implementation. The .pen file is the single source of truth for tokens and composition.
 ---
 
 # Design System
@@ -9,20 +9,26 @@ This skill standardizes design-system decisions for this repository.
 
 ## Source Priority
 
-1. `design/design-system.pen` (single source of truth for tokens AND components)
-2. `src/styles/tokens/design-tokens.css` (CSS custom properties, oklch values)
-3. `src/styles/tokens/design-tokens.ts` (hex approximations for MUI)
-4. `src/styles/themes/default.ts` (MUI theme implementation)
+1. `design/design-system.pen` (single source of truth)
+2. `design/tokens/design-tokens.generated.json` (generated snapshot)
+3. `src/styles/tokens/design-tokens.css` (runtime CSS variables)
+4. `src/styles/tokens/design-tokens.ts` (runtime TS token map)
+5. `src/styles/themes/default.ts` (MUI theme mapping)
 
 ## Component-First Workflow (MUST)
 
 When building or modifying ANY UI component or page:
 
-1. **Read `.pen` components**: Use Pencil MCP `batch_get` with `patterns: [{ reusable: true }]` to list available components.
-2. **Inspect target component**: Use `batch_get` with `nodeIds` and `readDepth: 2` to read structure, spacing, colors, and children.
-3. **Check screen compositions**: The `.pen` file contains dashboard screens (`dashboard-utility`, `dashboard-revenue`, `dashboard-football`). Read them to understand how components are composed.
-4. **Implement in MUI**: Translate the `.pen` component spec into MUI code, matching layout, spacing, token usage, and visual hierarchy.
-5. **Verify visually**: Use `get_screenshot` on the `.pen` node to compare against your implementation.
+1. **Read `.pen` first**: Use Pencil MCP `batch_get` with `patterns: [{ reusable: true }]`.
+2. **Inspect target structures**: Read matching nodes with `readDepth: 2`.
+3. **Use current page composition as implementation anchor**:
+   - `src/components/onelink/OneLinkStitchedPage.tsx`
+4. **Reflect style decisions back to `.pen` tokens**:
+   - `pnpm tokens:apply-stitch-theme`
+5. **Regenerate token artifacts after `.pen` changes**:
+   - `pnpm tokens:sync`
+6. **Verify implementation against `.pen`**:
+   - Use `get_screenshot` for visual checks when needed.
 
 ### .pen → MUI Mapping Rules
 
@@ -40,34 +46,27 @@ When building or modifying ANY UI component or page:
 | `layout: "horizontal"` / default | `<Stack direction="row">` |
 | `width: "fill_container"` | `sx={{ width: '100%' }}` |
 | `justifyContent: "space_between"` | `sx={{ justifyContent: 'space-between' }}` |
-| `iconFontFamily: "lucide"` | `import { IconName } from 'lucide-react'` |
-
-### .pen Component Categories
-
-- **Buttons**: Default, Secondary, Outline, Ghost (+ Large, Icon variants)
-- **Cards**: Card, Card Action, Card Plain, Card Image
-- **Inputs**: Input Group, Select Group, Textarea Group, Combobox, Input OTP
-- **Tables**: Data Table, Table Row, Table Cell, Column Header
-- **Navigation**: Sidebar, Tabs, Breadcrumb, Pagination
-- **Feedback**: Dialog, Modal (Left/Center/Icon), Alert, Tooltip, Dropdown
-- **Data Display**: Badge, Avatar, Accordion, Progress
-- **Controls**: Checkbox, Radio, Switch
+| icon component | `HugeIcon` wrapper (`@hugeicons/*` first, `lucide-react` fallback) |
 
 ## Token Workflow
 
-- CSS variables (oklch): `src/styles/tokens/design-tokens.css` → imported in `globals.css`
-- MUI hex tokens: `src/styles/tokens/design-tokens.ts` → imported in `default.ts`
-- Token source: `design/index.css` (exported from `.pen`)
+- Source of truth: `design/design-system.pen`
+- Sync command: `pnpm tokens:sync`
+- Generated artifacts:
+  - `design/tokens/design-tokens.generated.json`
+  - `design/tokens/design-tokens.generated.md`
+  - `src/styles/tokens/design-tokens.css`
+  - `src/styles/tokens/design-tokens.ts`
 
 ## Guardrails
 
 - Do not hardcode hex values when a token exists.
-- Prefer neutral palette for default UI states.
-- Point colors only for: CTA emphasis, active/selected state, explicit semantic feedback.
+- Prefer neutral palette for default UI states and controls.
+- Point colors only for explicit state meaning.
 - Use semantic colors (`error`, `warning`, `success`, `info`) only for state meaning.
-- Design tokens are sourced exclusively from `design/` directory outputs.
-- **Always read `.pen` component specs before creating new UI components.**
-- **Do not invent component styles that contradict `.pen` definitions.**
+- Use `theme.palette` (or `pencilTokens`) in components, not local color maps.
+- HugeIcons are primary icon source; Lucide is fallback only through `HugeIcon`.
+- Do not ship UI changes without syncing token artifacts.
 
 ## References
 

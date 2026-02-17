@@ -1,60 +1,47 @@
 # Color Tokens
 
-This repository uses `design/design-system.pen` as the authoritative token source.
+`design/design-system.pen` is the only source of truth for token values.
 
-## Canonical Files
+## Generated Artifacts
 
-- `design/design-system.pen`
 - `design/tokens/design-tokens.generated.json`
 - `design/tokens/design-tokens.generated.md`
+- `src/styles/tokens/design-tokens.css`
+- `src/styles/tokens/design-tokens.ts`
 
-Always run `pnpm tokens:sync` before token-related updates.
+Always run:
 
-## Theme Axes
+```bash
+pnpm tokens:sync
+```
 
-- `Mode`: `Light`, `Dark`
-- `Base`: `Neutral`, `Gray`, `Stone`, `Zinc`, `Slate`
-- `Accent`: `Default`, `Red`, `Rose`, `Orange`, `Green`, `Blue`, `Yellow`, `Violet`
+after any `.pen` token edit.
 
-## Default Token Baseline (Light + Neutral + Default)
+## Current Light Baseline
 
-| Token | Value |
-| --- | --- |
-| `--primary` | `#171717` |
-| `--primary-foreground` | `#fafafa` |
-| `--secondary` | `#f5f5f5` |
-| `--secondary-foreground` | `#171717` |
-| `--background` | `#fafafa` |
-| `--foreground` | `#0a0a0a` |
-| `--card` | `#fafafa` |
-| `--card-foreground` | `#0a0a0a` |
-| `--popover` | `#fafafa` |
-| `--popover-foreground` | `#0a0a0a` |
-| `--muted` | `#f5f5f5` |
-| `--muted-foreground` | `#737373` |
-| `--accent` | `#f5f5f5` |
-| `--accent-foreground` | `#171717` |
-| `--destructive` | `#e7000b` |
-| `--border` | `#e5e5e5` |
-| `--input` | `#e5e5e5` |
-| `--ring` | `#a3a3a3` |
-
-## Sidebar Tokens
+These values must come from generated output, not manually maintained constants:
 
 | Token | Value |
 | --- | --- |
-| `--sidebar` | `#fafafa` |
-| `--sidebar-foreground` | `#09090b` |
-| `--sidebar-border` | `#e4e4e7` |
-| `--sidebar-accent` | `#f4f4f4` |
-| `--sidebar-accent-foreground` | `#18181b` |
-| `--sidebar-primary` | `#18181b` |
-| `--sidebar-primary-foreground` | `#fafafa` |
-| `--sidebar-ring` | `#71717a` |
+| `--primary` | `#4f46e5` |
+| `--primary-foreground` | `#ffffff` |
+| `--secondary` | `#f1f5f9` |
+| `--secondary-foreground` | `#0f172a` |
+| `--background` | `#f8fafc` |
+| `--foreground` | `#0f172a` |
+| `--card` | `#ffffff` |
+| `--card-foreground` | `#0f172a` |
+| `--muted` | `#f1f5f9` |
+| `--muted-foreground` | `#64748b` |
+| `--accent` | `#eef2ff` |
+| `--accent-foreground` | `#4f46e5` |
+| `--border` | `#e2e8f0` |
+| `--input` | `#e2e8f0` |
+| `--ring` | `#4f46e5` |
 
-## MUI Mapping Guidance
+## MUI Mapping
 
-| Pencil token | MUI path |
+| Token | MUI path |
 | --- | --- |
 | `--primary` | `palette.primary.main` |
 | `--primary-foreground` | `palette.primary.contrastText` |
@@ -65,25 +52,10 @@ Always run `pnpm tokens:sync` before token-related updates.
 | `--muted-foreground` | `palette.text.secondary` |
 | `--border` | `palette.divider` |
 | `--destructive` | `palette.error.main` |
-| `--ring` | focus/ring helper tokens in component styles |
 
 ## Usage Rules
 
-1. Prefer neutral tokens (`text.*`, `background.*`, `divider`) for default UI.
-2. Point colors must be used only when strictly necessary.
-3. Use `primary` for CTA/active selection only.
-4. Use semantic colors (`error`, `warning`, `success`, `info`) only for true state semantics.
-5. Do not use point colors for decorative backgrounds, ordinary content text, or non-semantic icon styling.
-6. Avoid hardcoded hex when a token path exists.
-
-## Fallback Integrity
-
-Ambiguous unscoped fallback values are normalized with:
-
-```bash
-pnpm tokens:normalize-pen
-pnpm tokens:sync
-```
-
-Expected state:
-- `design/tokens/design-tokens.generated.json` has `warnings.ambiguousFallbackTokens: []`.
+1. Use tokenized values through MUI theme (`theme.palette`) in components.
+2. Do not hardcode hex values in feature/page components.
+3. Use semantic colors (`error`, `warning`, `success`, `info`) only for semantic feedback.
+4. Keep icon and decorative surfaces neutral by default.

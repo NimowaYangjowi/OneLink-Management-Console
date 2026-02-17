@@ -1,7 +1,10 @@
 # src/components/onelink
 
-OneLink-specific components for the integrated root dashboard UI.
+OneLink-specific screen and layout components for link creation and settings management.
 
 ## Files
 
-- `OneLinkStitchedPage.tsx` - Main integrated OneLink creation page composed with MUI and HugeIcons
+- `ConsoleLayout.tsx` - Shared sidebar and sticky-header shell used by OneLink pages
+- `OneLinkListPage.tsx` - Searchable management UI with CRUD controls for created OneLink records
+- `OneLinkSettingsPage.tsx` - Settings management UI for Template IDs and attribution field presets
+- `OneLinkStitchedPage.tsx` - Link creation page with live preview and settings-driven autocomplete

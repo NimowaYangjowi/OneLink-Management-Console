@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "tokens:apply-stitch-theme": "node scripts/apply-onelink-stitch-theme-to-pen.mjs",
+    "tokens:sync": "node scripts/sync-pen-tokens.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -10,7 +12,9 @@
     "typecheck": "next typegen && tsc --noEmit",
     "bridge:codex": "node scripts/sync-claude-to-codex.mjs",
     "codex:stop-hook": "bash .codex/hooks/on-stop.sh",
-    "codex:bridge-cli": "bash scripts/codex-with-claude-bridge.sh"
+    "codex:bridge-cli": "bash scripts/codex-with-claude-bridge.sh",
+    "commit": "bash scripts/auto-commit.sh",
+    "commit:dry": "bash scripts/auto-commit.sh --dry-run"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -21,12 +25,14 @@
     "@mui/icons-material": "^7.3.8",
     "@mui/material": "^7.3.8",
     "@mui/material-nextjs": "^7.3.8",
+    "better-sqlite3": "^12.6.2",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -34,5 +40,10 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }

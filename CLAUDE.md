@@ -41,6 +41,7 @@ pnpm dev
 pnpm lint
 pnpm typecheck
 pnpm build
+pnpm tokens:apply-stitch-theme
 pnpm tokens:sync
 ```
 
@@ -69,11 +70,13 @@ When building or modifying any UI:
 
 1. **Read `.pen` first**: Use Pencil MCP tools (`batch_get`) to read component specs from `design/design-system.pen` before writing any UI code.
 2. **Match `.pen` structure**: Implement using MUI components, but match the layout, spacing, colors, and visual structure defined in the `.pen` components.
-3. **Screen compositions**: The `.pen` file contains full dashboard screen compositions (`dashboard-utility`, `dashboard-revenue`, `dashboard-football`). Use these as reference when building pages.
+3. **Current production composition**: `src/components/onelink/OneLinkStitchedPage.tsx` is the active page and must be reflected back into `.pen` and token decisions.
 4. **Component mapping**: Map `.pen` reusable components to MUI equivalents (e.g., `.pen` Card → MUI Card with matching sx props).
 
 ### Token Governance
 
 - Single source of truth: `design/design-system.pen`.
+- Palette back-port command for current OneLink page style: `pnpm tokens:apply-stitch-theme`.
 - Runtime tokens: `src/styles/tokens/design-tokens.css` (CSS variables) and `src/styles/tokens/design-tokens.ts` (hex for MUI).
+- Snapshot artifacts: `design/tokens/design-tokens.generated.json` and `design/tokens/design-tokens.generated.md`.
 - Unification strategy: `design/design-system-unification.md`

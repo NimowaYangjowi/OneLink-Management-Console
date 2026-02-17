@@ -1,83 +1,129 @@
 'use client';
 
 /**
- * SettingsContext - Global settings state with localStorage persistence.
+ * SettingsContext - Global settings state with API-backed SQLite persistence.
  * Manages OneLink Template IDs and field presets used across the console.
  *
  * Template IDs: 4-character alphanumeric codes (case-sensitive)
+ * Template domain cache: subdomain/host metadata discovered by probe link creation
+ * Template branded domains: reusable custom domains stored per Template ID
  * Presets: Reusable values for attribution fields (pid, campaign, adset, ad, channel)
  */
 
 import {
   createContext,
   useContext,
-  useReducer,
-  useEffect,
   useCallback,
+  useEffect,
   useMemo,
+  useRef,
+  useReducer,
+  useState,
   type ReactNode,
 } from 'react';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-/** Fields that support preset values. */
-export type PresetField = 'pid' | 'c' | 'af_adset' | 'af_ad' | 'af_channel';
-
-/** Human-readable labels for preset fields. */
-export const PRESET_FIELD_LABELS: Record<PresetField, string> = {
-  pid: 'Media Source',
-  c: 'Campaign',
-  af_adset: 'Ad Set',
-  af_ad: 'Ad Name',
-  af_channel: 'Channel',
-};
-
-/** All preset field keys in display order. */
-export const PRESET_FIELDS: PresetField[] = ['pid', 'c', 'af_adset', 'af_ad', 'af_channel'];
-
-export interface SettingsState {
-  templateIds: string[];
-  presets: Record<PresetField, string[]>;
-}
+import {
+  createInitialSettingsState,
+  sanitizeSettingsState,
+  validateTemplateIdFormat,
+  type PresetField,
+  type SettingsState,
+} from '@/lib/settingsSchema';
+export {
+  PRESET_FIELDS,
+  PRESET_FIELDS_BY_SECTION,
+  PRESET_FIELD_LABELS,
+  PRESET_FIELD_PLACEHOLDERS,
+  PRESET_SECTIONS,
+  PRESET_SECTION_LABELS,
+} from '@/lib/settingsSchema';
+export type { PresetField, PresetSection, SettingsState } from '@/lib/settingsSchema';
 
 type SettingsAction =
-  | { type: 'ADD_TEMPLATE_ID'; id: string }
   | { type: 'REMOVE_TEMPLATE_ID'; id: string }
+  | { type: 'ADD_TEMPLATE_BRANDED_DOMAIN'; templateId: string; domain: string }
+  | { type: 'REMOVE_TEMPLATE_BRANDED_DOMAIN'; templateId: string; domain: string }
   | { type: 'ADD_PRESET'; field: PresetField; value: string }
   | { type: 'REMOVE_PRESET'; field: PresetField; value: string }
   | { type: 'HYDRATE'; state: SettingsState };
 
 interface SettingsContextValue {
   settings: SettingsState;
-  addTemplateId: (id: string) => { success: boolean; error?: string };
+  addTemplateId: (id: string) => Promise<{ success: boolean; error?: string }>;
   removeTemplateId: (id: string) => void;
+  addTemplateBrandedDomain: (templateId: string, domain: string) => { success: boolean; error?: string };
+  removeTemplateBrandedDomain: (templateId: string, domain: string) => void;
+  getTemplateBrandedDomains: (templateId: string) => string[];
   addPreset: (field: PresetField, value: string) => { success: boolean; error?: string };
   removePreset: (field: PresetField, value: string) => void;
   getPresets: (field: PresetField) => string[];
   validateTemplateId: (id: string) => { valid: boolean; error?: string };
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+const INITIAL_STATE = createInitialSettingsState();
 
-const STORAGE_KEY = 'onelink-console-settings';
+async function fetchSettingsFromApi(signal: AbortSignal): Promise<SettingsState | null> {
+  try {
+    const response = await fetch('/api/settings', {
+      cache: 'no-store',
+      method: 'GET',
+      signal,
+    });
 
-const INITIAL_STATE: SettingsState = {
-  templateIds: [],
-  presets: {
-    pid: [],
-    c: [],
-    af_adset: [],
-    af_ad: [],
-    af_channel: [],
-  },
-};
+    if (!response.ok) {
+      return null;
+    }
 
-/** Template ID must be exactly 4 alphanumeric characters (case-sensitive). */
-const TEMPLATE_ID_REGEX = /^[a-zA-Z0-9]{4}$/;
+    const payload = (await response.json()) as unknown;
+    return sanitizeSettingsState(payload);
+  } catch {
+    return null;
+  }
+}
+
+async function persistSettingsToApi(state: SettingsState, signal: AbortSignal): Promise<boolean> {
+  try {
+    const response = await fetch('/api/settings', {
+      body: JSON.stringify(state),
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      method: 'PUT',
+      signal,
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function addTemplateIdToApi(
+  templateId: string,
+  signal: AbortSignal,
+): Promise<{ state?: SettingsState; error?: string }> {
+  try {
+    const response = await fetch('/api/settings', {
+      body: JSON.stringify({ templateId }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      signal,
+    });
+
+    const payload = (await response.json()) as unknown;
+    if (!response.ok) {
+      const errorMessage =
+        payload
+        && typeof payload === 'object'
+        && typeof (payload as { error?: unknown }).error === 'string'
+          ? (payload as { error: string }).error
+        : 'Failed to add template ID.';
+      return { error: errorMessage };
+    }
+
+    return { state: sanitizeSettingsState(payload) };
+  } catch {
+    return { error: 'Failed to add template ID.' };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -85,15 +131,39 @@ const TEMPLATE_ID_REGEX = /^[a-zA-Z0-9]{4}$/;
 
 function settingsReducer(state: SettingsState, action: SettingsAction): SettingsState {
   switch (action.type) {
-    case 'ADD_TEMPLATE_ID':
-      return {
-        ...state,
-        templateIds: [...state.templateIds, action.id],
-      };
-    case 'REMOVE_TEMPLATE_ID':
+    case 'REMOVE_TEMPLATE_ID': {
+      const nextTemplateDomains = { ...state.templateDomains };
+      const nextTemplateBrandedDomains = { ...state.templateBrandedDomains };
+      delete nextTemplateDomains[action.id];
+      delete nextTemplateBrandedDomains[action.id];
+
       return {
         ...state,
         templateIds: state.templateIds.filter((id) => id !== action.id),
+        templateBrandedDomains: nextTemplateBrandedDomains,
+        templateDomains: nextTemplateDomains,
+      };
+    }
+    case 'ADD_TEMPLATE_BRANDED_DOMAIN':
+      return {
+        ...state,
+        templateBrandedDomains: {
+          ...state.templateBrandedDomains,
+          [action.templateId]: [
+            ...(state.templateBrandedDomains[action.templateId] ?? []),
+            action.domain,
+          ],
+        },
+      };
+    case 'REMOVE_TEMPLATE_BRANDED_DOMAIN':
+      return {
+        ...state,
+        templateBrandedDomains: {
+          ...state.templateBrandedDomains,
+          [action.templateId]: (state.templateBrandedDomains[action.templateId] ?? []).filter(
+            (domain) => domain !== action.domain,
+          ),
+        },
       };
     case 'ADD_PRESET':
       return {
@@ -135,40 +205,74 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
  */
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, dispatch] = useReducer(settingsReducer, INITIAL_STATE);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const lastPersistedStateRef = useRef<string>(JSON.stringify(INITIAL_STATE));
+  const hasLocalChangesRef = useRef(false);
 
-  /** Hydrate state from localStorage on mount. */
+  /** Hydrate state from server on mount. */
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as SettingsState;
-        if (parsed.templateIds && parsed.presets) {
-          dispatch({ type: 'HYDRATE', state: parsed });
-        }
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const hydrate = async () => {
+      const loadedSettings = await fetchSettingsFromApi(controller.signal);
+
+      if (!isMounted) {
+        return;
       }
-    } catch {
-      // Ignore parse errors, use defaults
-    }
+
+      if (loadedSettings && !hasLocalChangesRef.current) {
+        dispatch({ type: 'HYDRATE', state: loadedSettings });
+        lastPersistedStateRef.current = JSON.stringify(loadedSettings);
+      }
+
+      setIsHydrated(true);
+    };
+
+    void hydrate();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, []);
 
-  /** Persist to localStorage on every change. */
+  /** Persist to server on every change after initial hydration. */
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch {
-      // Ignore storage errors (e.g., quota exceeded)
+    if (!isHydrated) {
+      return;
     }
-  }, [settings]);
+
+    const serializedState = JSON.stringify(settings);
+    if (serializedState === lastPersistedStateRef.current) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const persist = async () => {
+      const persisted = await persistSettingsToApi(settings, controller.signal);
+      if (persisted) {
+        lastPersistedStateRef.current = serializedState;
+      }
+    };
+
+    void persist();
+
+    return () => {
+      controller.abort();
+    };
+  }, [isHydrated, settings]);
 
   const validateTemplateId = useCallback(
     (id: string): { valid: boolean; error?: string } => {
-      if (!id.trim()) {
-        return { valid: false, error: 'Template ID is required.' };
+      const formatValidation = validateTemplateIdFormat(id);
+      if (!formatValidation.valid) {
+        return formatValidation;
       }
-      if (!TEMPLATE_ID_REGEX.test(id)) {
-        return { valid: false, error: 'Must be exactly 4 alphanumeric characters (a-z, A-Z, 0-9).' };
-      }
-      if (settings.templateIds.includes(id)) {
+
+      const normalized = id.trim();
+      if (settings.templateIds.includes(normalized)) {
         return { valid: false, error: 'This Template ID already exists.' };
       }
       return { valid: true };
@@ -177,20 +281,68 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const addTemplateId = useCallback(
-    (id: string): { success: boolean; error?: string } => {
+    async (id: string): Promise<{ success: boolean; error?: string }> => {
       const validation = validateTemplateId(id);
       if (!validation.valid) {
         return { success: false, error: validation.error };
       }
-      dispatch({ type: 'ADD_TEMPLATE_ID', id });
+
+      const controller = new AbortController();
+      const result = await addTemplateIdToApi(id.trim(), controller.signal);
+      if (!result.state) {
+        return { success: false, error: result.error ?? 'Failed to add template ID.' };
+      }
+
+      hasLocalChangesRef.current = true;
+      dispatch({ type: 'HYDRATE', state: result.state });
+      lastPersistedStateRef.current = JSON.stringify(result.state);
       return { success: true };
     },
     [validateTemplateId]
   );
 
   const removeTemplateId = useCallback((id: string) => {
+    hasLocalChangesRef.current = true;
     dispatch({ type: 'REMOVE_TEMPLATE_ID', id });
   }, []);
+
+  const addTemplateBrandedDomain = useCallback(
+    (templateId: string, domain: string): { success: boolean; error?: string } => {
+      const normalizedTemplateId = templateId.trim();
+      if (!settings.templateIds.includes(normalizedTemplateId)) {
+        return { success: false, error: 'Template ID not found.' };
+      }
+
+      const normalized = domain.trim().toLowerCase();
+      if (!normalized) {
+        return { success: false, error: 'Branded domain is required.' };
+      }
+
+      const currentDomains = settings.templateBrandedDomains[normalizedTemplateId] ?? [];
+      if (currentDomains.includes(normalized)) {
+        return { success: false, error: 'This branded domain already exists in this template.' };
+      }
+
+      hasLocalChangesRef.current = true;
+      dispatch({
+        type: 'ADD_TEMPLATE_BRANDED_DOMAIN',
+        domain: normalized,
+        templateId: normalizedTemplateId,
+      });
+      return { success: true };
+    },
+    [settings.templateBrandedDomains, settings.templateIds]
+  );
+
+  const removeTemplateBrandedDomain = useCallback((templateId: string, domain: string) => {
+    hasLocalChangesRef.current = true;
+    dispatch({ type: 'REMOVE_TEMPLATE_BRANDED_DOMAIN', domain, templateId });
+  }, []);
+
+  const getTemplateBrandedDomains = useCallback(
+    (templateId: string): string[] => settings.templateBrandedDomains[templateId] ?? [],
+    [settings.templateBrandedDomains]
+  );
 
   const addPreset = useCallback(
     (field: PresetField, value: string): { success: boolean; error?: string } => {
@@ -201,6 +353,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (settings.presets[field].includes(trimmed)) {
         return { success: false, error: 'This value already exists.' };
       }
+      hasLocalChangesRef.current = true;
       dispatch({ type: 'ADD_PRESET', field, value: trimmed });
       return { success: true };
     },
@@ -208,6 +361,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const removePreset = useCallback((field: PresetField, value: string) => {
+    hasLocalChangesRef.current = true;
     dispatch({ type: 'REMOVE_PRESET', field, value });
   }, []);
 
@@ -221,12 +375,26 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       settings,
       addTemplateId,
       removeTemplateId,
+      addTemplateBrandedDomain,
+      removeTemplateBrandedDomain,
+      getTemplateBrandedDomains,
       addPreset,
       removePreset,
       getPresets,
       validateTemplateId,
     }),
-    [settings, addTemplateId, removeTemplateId, addPreset, removePreset, getPresets, validateTemplateId]
+    [
+      settings,
+      addTemplateId,
+      removeTemplateId,
+      addTemplateBrandedDomain,
+      removeTemplateBrandedDomain,
+      getTemplateBrandedDomains,
+      addPreset,
+      removePreset,
+      getPresets,
+      validateTemplateId,
+    ]
   );
 
   return (

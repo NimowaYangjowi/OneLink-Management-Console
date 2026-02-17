@@ -1,0 +1,273 @@
+{
+  "generatedAt": "2026-02-17T05:48:26.567Z",
+  "source": "design/design-system.pen",
+  "themes": {
+    "Mode": [
+      "Light",
+      "Dark"
+    ]
+  },
+  "tokenCount": 52,
+  "tokens": {
+    "--accent": {
+      "dark": "#87ceeb",
+      "light": "#eef2ff",
+      "type": "color"
+    },
+    "--accent-foreground": {
+      "dark": "#000000",
+      "light": "#4f46e5",
+      "type": "color"
+    },
+    "--background": {
+      "dark": "#1a1d23",
+      "light": "#f8fafc",
+      "type": "color"
+    },
+    "--border": {
+      "dark": "#444444",
+      "light": "#e2e8f0",
+      "type": "color"
+    },
+    "--card": {
+      "dark": "#2f3436",
+      "light": "#ffffff",
+      "type": "color"
+    },
+    "--card-foreground": {
+      "dark": "#e5e5e5",
+      "light": "#0f172a",
+      "type": "color"
+    },
+    "--chart-1": {
+      "dark": "#ff99cc",
+      "light": "#4f46e5",
+      "type": "color"
+    },
+    "--chart-2": {
+      "dark": "#33cc33",
+      "light": "#0ea5e9",
+      "type": "color"
+    },
+    "--chart-3": {
+      "dark": "#87ceeb",
+      "light": "#22c55e",
+      "type": "color"
+    },
+    "--chart-4": {
+      "dark": "#ffff00",
+      "light": "#f59e0b",
+      "type": "color"
+    },
+    "--chart-5": {
+      "dark": "#ffcc00",
+      "light": "#ef4444",
+      "type": "color"
+    },
+    "--destructive": {
+      "dark": "#ef4444",
+      "light": "#ef4444",
+      "type": "color"
+    },
+    "--destructive-foreground": {
+      "dark": "#ffffff",
+      "light": "#ffffff",
+      "type": "color"
+    },
+    "--font-mono": {
+      "dark": null,
+      "light": "Roboto Mono, monospace",
+      "type": "string"
+    },
+    "--font-sans": {
+      "dark": null,
+      "light": "Poppins, sans-serif",
+      "type": "string"
+    },
+    "--font-serif": {
+      "dark": null,
+      "light": "Aref Ruqaa, ui-serif, serif",
+      "type": "string"
+    },
+    "--foreground": {
+      "dark": "#e5e5e5",
+      "light": "#0f172a",
+      "type": "color"
+    },
+    "--input": {
+      "dark": "#444444",
+      "light": "#e2e8f0",
+      "type": "color"
+    },
+    "--muted": {
+      "dark": "#444444",
+      "light": "#f1f5f9",
+      "type": "color"
+    },
+    "--muted-foreground": {
+      "dark": "#a3a3a3",
+      "light": "#64748b",
+      "type": "color"
+    },
+    "--popover": {
+      "dark": "#2f3436",
+      "light": "#ffffff",
+      "type": "color"
+    },
+    "--popover-foreground": {
+      "dark": "#e5e5e5",
+      "light": "#0f172a",
+      "type": "color"
+    },
+    "--primary": {
+      "dark": "#ff99cc",
+      "light": "#4f46e5",
+      "type": "color"
+    },
+    "--primary-foreground": {
+      "dark": "#000000",
+      "light": "#ffffff",
+      "type": "color"
+    },
+    "--radius": {
+      "dark": null,
+      "light": "0.5rem",
+      "type": "string"
+    },
+    "--ring": {
+      "dark": "#ff99cc",
+      "light": "#4f46e5",
+      "type": "color"
+    },
+    "--secondary": {
+      "dark": "#33cc33",
+      "light": "#f1f5f9",
+      "type": "color"
+    },
+    "--secondary-foreground": {
+      "dark": "#000000",
+      "light": "#0f172a",
+      "type": "color"
+    },
+    "--shadow": {
+      "dark": null,
+      "light": "0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10)",
+      "type": "string"
+    },
+    "--shadow-2xl": {
+      "dark": null,
+      "light": "0 1px 3px 0px hsl(0 0% 0% / 0.25)",
+      "type": "string"
+    },
+    "--shadow-2xs": {
+      "dark": null,
+      "light": "0 1px 3px 0px hsl(0 0% 0% / 0.05)",
+      "type": "string"
+    },
+    "--shadow-blur": {
+      "dark": null,
+      "light": "3px",
+      "type": "string"
+    },
+    "--shadow-color": {
+      "dark": null,
+      "light": "#000000",
+      "type": "color"
+    },
+    "--shadow-lg": {
+      "dark": null,
+      "light": "0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10)",
+      "type": "string"
+    },
+    "--shadow-md": {
+      "dark": null,
+      "light": "0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 2px 4px -1px hsl(0 0% 0% / 0.10)",
+      "type": "string"
+    },
+    "--shadow-opacity": {
+      "dark": null,
+      "light": "0.1",
+      "type": "string"
+    },
+    "--shadow-sm": {
+      "dark": null,
+      "light": "0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10)",
+      "type": "string"
+    },
+    "--shadow-spread": {
+      "dark": null,
+      "light": "0px",
+      "type": "string"
+    },
+    "--shadow-x": {
+      "dark": null,
+      "light": "0",
+      "type": "string"
+    },
+    "--shadow-xl": {
+      "dark": null,
+      "light": "0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10)",
+      "type": "string"
+    },
+    "--shadow-xs": {
+      "dark": null,
+      "light": "0 1px 3px 0px hsl(0 0% 0% / 0.05)",
+      "type": "string"
+    },
+    "--shadow-y": {
+      "dark": null,
+      "light": "1px",
+      "type": "string"
+    },
+    "--sidebar": {
+      "dark": "#1a1d23",
+      "light": "#ffffff",
+      "type": "color"
+    },
+    "--sidebar-accent": {
+      "dark": "#87ceeb",
+      "light": "#f1f5f9",
+      "type": "color"
+    },
+    "--sidebar-accent-foreground": {
+      "dark": "#000000",
+      "light": "#0f172a",
+      "type": "color"
+    },
+    "--sidebar-border": {
+      "dark": "#444444",
+      "light": "#e2e8f0",
+      "type": "color"
+    },
+    "--sidebar-foreground": {
+      "dark": "#e5e5e5",
+      "light": "#0f172a",
+      "type": "color"
+    },
+    "--sidebar-primary": {
+      "dark": "#ff99cc",
+      "light": "#4f46e5",
+      "type": "color"
+    },
+    "--sidebar-primary-foreground": {
+      "dark": "#000000",
+      "light": "#ffffff",
+      "type": "color"
+    },
+    "--sidebar-ring": {
+      "dark": "#ff99cc",
+      "light": "#4f46e5",
+      "type": "color"
+    },
+    "--spacing": {
+      "dark": null,
+      "light": "0.25rem",
+      "type": "string"
+    },
+    "--tracking-normal": {
+      "dark": null,
+      "light": "0em",
+      "type": "string"
+    }
+  }
+}

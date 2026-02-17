@@ -4,4 +4,5 @@ React context providers that wrap the application. Each provider encapsulates a 
 
 ## Files
 
+- `SettingsContext.tsx` - Global settings store for Template IDs and attribution presets with API-backed SQLite persistence
 - `ThemeProvider.tsx` - MUI ThemeProvider + CssBaseline wrapper using the project's default theme

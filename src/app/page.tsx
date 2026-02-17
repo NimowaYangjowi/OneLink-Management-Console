@@ -1,8 +1,8 @@
 /**
- * Root page that renders the integrated OneLink creation dashboard UI.
+ * Root page that redirects to the create route.
  */
-import OneLinkStitchedPage from '@/components/onelink/OneLinkStitchedPage';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return <OneLinkStitchedPage />;
+  redirect('/create');
 }
