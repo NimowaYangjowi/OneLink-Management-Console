@@ -13,6 +13,7 @@
     "bridge:codex": "node scripts/sync-claude-to-codex.mjs",
     "codex:stop-hook": "bash .codex/hooks/on-stop.sh",
     "codex:bridge-cli": "bash scripts/codex-with-claude-bridge.sh",
+    "codex": "bash scripts/codex-with-claude-bridge.sh",
     "commit": "bash scripts/auto-commit.sh",
     "commit:dry": "bash scripts/auto-commit.sh --dry-run"
   },

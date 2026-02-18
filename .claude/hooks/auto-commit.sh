@@ -10,8 +10,34 @@ set -euo pipefail
 # 설정
 # ============================================================================
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+PROJECT_DIR="${CODEX_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-.}}"
 cd "$PROJECT_DIR"
+
+RUNTIME="${AUTO_COMMIT_RUNTIME:-}"
+if [[ -z "$RUNTIME" ]]; then
+  if [[ -n "${CODEX_PROJECT_DIR:-}" ]]; then
+    RUNTIME="codex"
+  elif [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
+    RUNTIME="claude"
+  else
+    RUNTIME="agent"
+  fi
+fi
+
+case "$RUNTIME" in
+  codex)
+    RUNTIME_LABEL="Codex"
+    COAUTHOR="${AUTO_COMMIT_COAUTHOR:-OpenAI Codex <noreply@openai.com>}"
+    ;;
+  claude)
+    RUNTIME_LABEL="Claude"
+    COAUTHOR="${AUTO_COMMIT_COAUTHOR:-Claude Haiku 4.5 <noreply@anthropic.com>}"
+    ;;
+  *)
+    RUNTIME_LABEL="Agent"
+    COAUTHOR="${AUTO_COMMIT_COAUTHOR:-}"
+    ;;
+esac
 
 # 민감 파일 제외 패턴 (배열)
 EXCLUDE_PATTERNS=(
@@ -69,7 +95,7 @@ should_exclude() {
 # 메인 로직
 # ============================================================================
 
-log_section "Claude 작업 종료 훅 실행..."
+log_section "${RUNTIME_LABEL} 작업 종료 훅 실행..."
 
 # 1. Git 저장소 확인
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -145,23 +171,29 @@ DELETED_COUNT=$(git diff --cached --diff-filter=D --name-only 2>/dev/null | wc -
 # 6. 커밋 메시지 생성
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-MODEL="Claude Haiku 4.5"
+COAUTHOR_LINE=""
+if [[ -n "$COAUTHOR" ]]; then
+  COAUTHOR_LINE=$'\n\n'"Co-Authored-By: ${COAUTHOR}"
+fi
 
-COMMIT_MSG="chore(auto): Claude Code changes (${CHANGED_COUNT} files)
+MORE_FILES_LINE=""
+if [[ "$CHANGED_COUNT" -gt 10 ]]; then
+  MORE_FILES_LINE="  ... and $((CHANGED_COUNT - 10)) more"
+fi
+
+COMMIT_MSG="chore(auto): ${RUNTIME_LABEL} changes (${CHANGED_COUNT} files)
 
 Operations:
-  • Added: ${ADDED_COUNT}
-  • Modified: ${MODIFIED_COUNT}
-  • Deleted: ${DELETED_COUNT}
+  - Added: ${ADDED_COUNT}
+  - Modified: ${MODIFIED_COUNT}
+  - Deleted: ${DELETED_COUNT}
 
 Changed files:
 $(echo "$CHANGED_FILES" | sed 's/^/  - /')
-$([ "$CHANGED_COUNT" -gt 10 ] && echo "  ... and $((CHANGED_COUNT - 10)) more")
+${MORE_FILES_LINE}
 
 Branch: ${BRANCH}
-Time: ${TIMESTAMP}
-
-Co-Authored-By: ${MODEL} <noreply@anthropic.com>"
+Time: ${TIMESTAMP}${COAUTHOR_LINE}"
 
 # 7. 커밋 실행
 log_section "커밋 중..."
@@ -181,5 +213,5 @@ else
   exit 1
 fi
 
-log_success "Claude 작업 종료 훅 완료"
+log_success "${RUNTIME_LABEL} 작업 종료 훅 완료"
 exit 0

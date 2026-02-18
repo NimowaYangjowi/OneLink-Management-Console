@@ -45,9 +45,11 @@ Git 변경사항 감지 및 커밋
 
 ### 변경사항 분석
 
+런타임을 자동 감지하여 `Codex` 또는 `Claude` 이름으로 커밋 메타데이터를 기록합니다.
+
 ```bash
 # 커밋 메시지 예시
-chore(auto): Claude Code changes (43 files)
+chore(auto): Codex changes (43 files)
 
 Operations:
   • Added: 2
@@ -63,7 +65,7 @@ Changed files:
 Branch: main
 Time: 2026-02-17 15:30:45
 
-Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
+Co-Authored-By: OpenAI Codex <noreply@openai.com>
 ```
 
 ---

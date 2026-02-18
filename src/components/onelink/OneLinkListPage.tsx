@@ -25,7 +25,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Search } from 'lucide-react';
+import { MoreHorizontal, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
@@ -71,6 +71,18 @@ type OneLinkDeleteResponse = {
   deleted?: boolean;
   error?: string;
   remoteDeleted?: boolean;
+};
+
+type OneLinkCreateResponse = {
+  error?: string;
+};
+
+type OneLinkDetailResponse = {
+  error?: string;
+  record?: OneLinkRecord;
+  remote?: {
+    oneLinkData?: Record<string, string>;
+  };
 };
 
 function FilterChipSelect<T extends string>({
@@ -153,6 +165,15 @@ function buildEditHref(record: OneLinkRecord): string {
   return `/create/${routeSegment}/${encodeURIComponent(record.id)}`;
 }
 
+function buildLongUrlPreview(templateId: string, oneLinkData: Record<string, string>): string {
+  const query = new URLSearchParams(oneLinkData).toString();
+  if (!query) {
+    return `https://app.onelink.me/${templateId}`;
+  }
+
+  return `https://app.onelink.me/${templateId}?${query}`;
+}
+
 /**
  * OneLinkListPage
  *
@@ -170,6 +191,8 @@ function OneLinkListPage() {
   const [templateFilter, setTemplateFilter] = useState('all');
   const [copiedRecordId, setCopiedRecordId] = useState('');
   const [activeRecordId, setActiveRecordId] = useState('');
+  const [actionsAnchorEl, setActionsAnchorEl] = useState<null | HTMLElement>(null);
+  const [actionsRecordId, setActionsRecordId] = useState('');
 
   const loadRecords = useCallback(async () => {
     setIsLoading(true);
@@ -254,6 +277,13 @@ function OneLinkListPage() {
     });
   }, [searchKeyword, tabRecords, templateFilter]);
 
+  const activeActionRecord = useMemo(
+    () => records.find((record) => record.id === actionsRecordId) || null,
+    [actionsRecordId, records],
+  );
+
+  const isActionsMenuOpen = Boolean(actionsAnchorEl);
+
   const handleCopyShortLink = async (record: OneLinkRecord) => {
     try {
       await navigator.clipboard.writeText(record.shortLink);
@@ -302,6 +332,88 @@ function OneLinkListPage() {
     } finally {
       setActiveRecordId('');
     }
+  };
+
+  const handleDuplicateRecord = async (record: OneLinkRecord) => {
+    if (activeRecordId) {
+      return;
+    }
+
+    setActiveRecordId(record.id);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      const detailResponse = await fetch(`/api/onelinks/${encodeURIComponent(record.id)}`, {
+        cache: 'no-store',
+        method: 'GET',
+      });
+      const detailPayload = (await detailResponse.json().catch(() => null)) as OneLinkDetailResponse | null;
+
+      if (!detailResponse.ok || !detailPayload?.record) {
+        setActionError(detailPayload?.error || 'Failed to load OneLink for duplication.');
+        return;
+      }
+
+      const oneLinkData = detailPayload.remote?.oneLinkData || {};
+      const createResponse = await fetch('/api/onelinks', {
+        body: JSON.stringify({
+          brandDomain: detailPayload.record.brandDomain,
+          campaignName: oneLinkData.c || detailPayload.record.campaignName,
+          channel: oneLinkData.af_channel || detailPayload.record.channel,
+          creationType: detailPayload.record.creationType,
+          linkName: `${detailPayload.record.linkName} (Copy)`.slice(0, 160),
+          longUrlPreview: buildLongUrlPreview(detailPayload.record.templateId, oneLinkData),
+          mediaSource: oneLinkData.pid || detailPayload.record.mediaSource,
+          oneLinkData,
+          shortLinkId: '',
+          templateId: detailPayload.record.templateId,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      });
+      const createPayload = (await createResponse.json().catch(() => null)) as
+        | OneLinkCreateResponse
+        | OneLinkRecord
+        | null;
+      const createErrorMessage =
+        createPayload &&
+        typeof createPayload === 'object' &&
+        'error' in createPayload &&
+        typeof createPayload.error === 'string'
+          ? createPayload.error
+          : '';
+
+      if (!createResponse.ok) {
+        setActionError(createErrorMessage || 'Failed to duplicate OneLink.');
+        return;
+      }
+
+      const [duplicatedRecord] = sanitizeOneLinkRecords([createPayload]);
+      if (!duplicatedRecord) {
+        setActionError('Duplicated OneLink response was invalid.');
+        return;
+      }
+
+      setRecords((previous) => [duplicatedRecord, ...previous]);
+      setActionSuccess(`"${record.linkName}" has been duplicated.`);
+    } catch {
+      setActionError('Failed to duplicate OneLink.');
+    } finally {
+      setActiveRecordId('');
+    }
+  };
+
+  const handleOpenActionsMenu = (event: MouseEvent<HTMLButtonElement>, recordId: string) => {
+    setActionsAnchorEl(event.currentTarget);
+    setActionsRecordId(recordId);
+  };
+
+  const handleCloseActionsMenu = () => {
+    setActionsAnchorEl(null);
+    setActionsRecordId('');
   };
 
   return (
@@ -471,21 +583,16 @@ function OneLinkListPage() {
                           </IconButton>
                         </TableCell>
                         <TableCell align='right'>
-                          <Stack direction='row' justifyContent='flex-end' spacing={ 0.5 }>
-                            <Button component={ Link } href={ buildEditHref(record) } size='small'>
-                              Manage
-                            </Button>
-                            <Button
-                              color='error'
-                              disabled={ activeRecordId === record.id }
-                              onClick={ () => {
-                                void handleDeleteRecord(record);
-                              } }
-                              size='small'
-                            >
-                              Delete
-                            </Button>
-                          </Stack>
+                          <IconButton
+                            aria-label='Open row actions'
+                            disabled={ activeRecordId === record.id }
+                            onClick={ (event) => {
+                              handleOpenActionsMenu(event, record.id);
+                            } }
+                            size='small'
+                          >
+                            <HugeIcon fallback={ MoreHorizontal } size={ 16 } />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -494,6 +601,47 @@ function OneLinkListPage() {
               </TableContainer>
             </Paper>
           ) : null}
+
+          <Menu
+            anchorEl={ actionsAnchorEl }
+            onClose={ handleCloseActionsMenu }
+            open={ isActionsMenuOpen }
+          >
+            {activeActionRecord ? (
+              <MenuItem
+                component={ Link }
+                href={ buildEditHref(activeActionRecord) }
+                onClick={ handleCloseActionsMenu }
+              >
+                Manage
+              </MenuItem>
+            ) : null}
+            <MenuItem
+              disabled={ !activeActionRecord || activeRecordId === activeActionRecord?.id }
+              onClick={ () => {
+                if (!activeActionRecord) {
+                  return;
+                }
+                handleCloseActionsMenu();
+                void handleDuplicateRecord(activeActionRecord);
+              } }
+            >
+              Duplicate
+            </MenuItem>
+            <MenuItem
+              disabled={ !activeActionRecord || activeRecordId === activeActionRecord?.id }
+              onClick={ () => {
+                if (!activeActionRecord) {
+                  return;
+                }
+                handleCloseActionsMenu();
+                void handleDeleteRecord(activeActionRecord);
+              } }
+              sx={ { color: 'error.main' } }
+            >
+              Delete
+            </MenuItem>
+          </Menu>
         </Stack>
       </Box>
     </ConsoleLayout>

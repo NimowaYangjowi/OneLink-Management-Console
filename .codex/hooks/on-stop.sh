@@ -15,5 +15,7 @@ if [[ ! -x "$HOOK_SCRIPT" ]]; then
   chmod +x "$HOOK_SCRIPT"
 fi
 
+export CODEX_PROJECT_DIR="$PROJECT_DIR"
 export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
+export AUTO_COMMIT_RUNTIME="codex"
 "$HOOK_SCRIPT"

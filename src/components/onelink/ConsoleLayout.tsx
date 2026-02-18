@@ -70,14 +70,14 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
           zIndex: 30,
         } }
       >
-        <Box sx={ { borderBottom: '1px solid', borderBottomColor: 'divider', px: 1.5, py: 1.25 } }>
+        <Box sx={ { borderBottom: '1px solid', borderBottomColor: 'divider', px: 1.5, py: 0.75 } }>
           <Stack alignItems='center' direction='row' justifyContent={ isSidebarCollapsed ? 'center' : 'flex-start' } spacing={ 0.75 }>
             {!isSidebarCollapsed && (
               <Box
                 alt='OneLink Console'
                 component='img'
                 src='/console-logo.png'
-                sx={ { display: 'block', maxWidth: '100%', width: 124 } }
+                sx={ { display: 'block', maxWidth: '100%', width: 148 } }
               />
             )}
           </Stack>

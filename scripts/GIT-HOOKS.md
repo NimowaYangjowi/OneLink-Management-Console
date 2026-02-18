@@ -83,6 +83,33 @@ $ pnpm commit
 
 ---
 
+## 🤖 Codex Integration
+
+This project also supports Codex using the same auto-commit hook logic.
+
+### Commands
+
+```bash
+# Run the stop-hook manually (quick validation)
+pnpm codex:stop-hook
+
+# Run Codex CLI with automatic stop-hook bridge on exit
+pnpm codex:bridge-cli -- <codex args>
+```
+
+### Hook flow
+
+```text
+Codex session end
+  -> .codex/hooks/on-stop.sh
+  -> .claude/hooks/auto-commit.sh
+  -> safe file filtering + auto commit
+```
+
+`auto-commit.sh` now detects runtime automatically and writes commit metadata as `Codex` or `Claude`.
+
+---
+
 ## 📋 커밋 메시지 규칙
 
 자동 생성되는 커밋 메시지는 다음 규칙을 따릅니다:
