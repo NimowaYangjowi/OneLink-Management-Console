@@ -89,7 +89,7 @@ function sanitizeGlobalParams(value: unknown): {
 
     if (typeof rawValue !== 'string') {
       return {
-        error: `Global parameter value for "${key}" must be a string.",
+        error: `Global parameter value for "${key}" must be a string.`,
         params: {},
         warnings,
       };

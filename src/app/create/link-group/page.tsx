@@ -1,8 +1,8 @@
 /**
- * Link-group creation page that reuses the existing create UI.
+ * Link-group creation route for the Phase A tree-based batch workflow.
  */
-import OneLinkStitchedPage from '@/components/onelink/OneLinkStitchedPage';
+import OneLinkGroupCreatePage from '@/components/onelink/OneLinkGroupCreatePage';
 
-export default function LinkGroupCreatePage() {
-  return <OneLinkStitchedPage createActionLabel='Create Link Group' creationType='link_group' />;
+export default function LinkGroupCreateRoute() {
+  return <OneLinkGroupCreatePage />;
 }

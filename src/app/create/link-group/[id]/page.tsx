@@ -1,7 +1,7 @@
 /**
- * Link-group edit page that reuses the OneLink stitched UI in edit mode.
+ * Legacy link-group edit route that now redirects to the group detail page.
  */
-import OneLinkStitchedPage from '@/components/onelink/OneLinkStitchedPage';
+import { redirect } from 'next/navigation';
 
 type LinkGroupEditPageProps = {
   params: Promise<{ id: string }>;
@@ -10,12 +10,5 @@ type LinkGroupEditPageProps = {
 export default async function LinkGroupEditPage({ params }: LinkGroupEditPageProps) {
   const { id } = await params;
 
-  return (
-    <OneLinkStitchedPage
-      createActionLabel='Update Link Group'
-      creationType='link_group'
-      mode='edit'
-      recordId={ id }
-    />
-  );
+  redirect(`/link-groups/${encodeURIComponent(id)}`);
 }

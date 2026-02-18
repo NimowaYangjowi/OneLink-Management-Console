@@ -23,7 +23,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import Link from 'next/link';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
 import { useSettings } from '@/lib/providers/SettingsContext';
@@ -70,15 +70,6 @@ function createClientId(): string {
   }
 
   return `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
-}
-
-function createEditorNodes(level: LinkGroupNodeLevel, values: string[]): EditorTreeNode[] {
-  return values.map((value) => ({
-    children: [],
-    id: createClientId(),
-    level,
-    value,
-  }));
 }
 
 function toSerializedNodes(nodes: EditorTreeNode[]): LinkGroupTreeNode[] {
@@ -183,7 +174,7 @@ function flattenTreeNodes(nodes: EditorTreeNode[]): EditorTreeNode[] {
   return flattened;
 }
 
-function renderTreePreview(nodes: EditorTreeNode[], depth = 0): React.ReactNode {
+function renderTreePreview(nodes: EditorTreeNode[], depth = 0): ReactNode {
   if (nodes.length === 0) {
     return null;
   }

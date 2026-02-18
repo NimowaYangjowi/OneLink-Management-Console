@@ -28,6 +28,7 @@ type NavItem = {
 
 const navigationItems: NavItem[] = [
   { fallbackIcon: List, href: '/links', label: 'OneLink Management' },
+  { fallbackIcon: List, href: '/link-groups', label: 'Link Groups' },
   { href: '/create', label: 'Create OneLink', icon: Add01Icon },
   { href: '/settings', label: 'Settings', icon: Settings02Icon },
 ];
@@ -70,14 +71,14 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
           zIndex: 30,
         } }
       >
-        <Box sx={ { borderBottom: '1px solid', borderBottomColor: 'divider', px: 1.5, py: 0.75 } }>
+        <Box sx={ { borderBottom: '1px solid', borderBottomColor: 'divider', px: 1.5, py: 0.5 } }>
           <Stack alignItems='center' direction='row' justifyContent={ isSidebarCollapsed ? 'center' : 'flex-start' } spacing={ 0.75 }>
             {!isSidebarCollapsed && (
               <Box
                 alt='OneLink Console'
                 component='img'
                 src='/console-logo.png'
-                sx={ { display: 'block', maxWidth: '100%', width: 148 } }
+                sx={ { display: 'block', maxWidth: '100%', width: 120 } }
               />
             )}
           </Stack>
@@ -90,6 +91,8 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
                 ? pathname.startsWith('/create')
                 : item.href === '/links'
                   ? pathname.startsWith('/links')
+                  : item.href === '/link-groups'
+                    ? pathname.startsWith('/link-groups')
                   : pathname === item.href;
             return (
               <Button

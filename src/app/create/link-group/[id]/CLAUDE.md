@@ -1,7 +1,7 @@
 # src/app/create/link-group/[id]
 
-Dynamic route segment for editing a link-group OneLink record.
+Dynamic route segment for legacy link-group edit URLs.
 
 ## Files
 
-- `page.tsx` - Loads the stitched form in edit mode for a link-group record
+- `page.tsx` - Redirects to `/link-groups/:id` detail page.
