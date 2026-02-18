@@ -71,7 +71,7 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
           zIndex: 30,
         } }
       >
-        <Box sx={ { borderBottom: '1px solid', borderBottomColor: 'divider', px: 1.5, py: 0.5 } }>
+        <Box sx={ { px: 1.5, py: 0.5 } }>
           <Stack alignItems='center' direction='row' justifyContent={ isSidebarCollapsed ? 'center' : 'flex-start' } spacing={ 0.75 }>
             {!isSidebarCollapsed && (
               <Box
@@ -190,8 +190,6 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
             alignItems: 'center',
             backdropFilter: 'blur(8px)',
             backgroundColor: alpha(theme.palette.background.default, 0.84),
-            borderBottom: '1px solid',
-            borderBottomColor: 'divider',
             display: 'flex',
             justifyContent: 'space-between',
             px: { md: 4, xs: 2 },
