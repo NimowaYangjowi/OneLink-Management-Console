@@ -10,12 +10,10 @@ dist
 dist-ssr
 
 # Environment
+.env*
+!.env.example
+!.env*.example
 *.local
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Logs
 logs
@@ -43,7 +41,26 @@ storybook-static
 
 # Build artifacts
 tsconfig.tsbuildinfo
+*.tsbuildinfo
 next-env.d.ts
 
 # Local SQLite data
 .data/
+*.db
+*.sqlite
+*.sqlite3
+
+# CI/Test artifacts
+coverage/
+playwright-report/
+test-results/
+
+# Deploy/Build tool caches
+.vercel/
+.turbo/
+
+# Local tool runtime state
+.cursor/worktrees.json
+
+# Temporary generated images
+ChatGPT_Image_*.png
