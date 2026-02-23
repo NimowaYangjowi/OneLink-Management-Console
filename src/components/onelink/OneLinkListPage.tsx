@@ -1,5 +1,5 @@
 /**
- * OneLink management page with search, filters, and CRUD actions for generated links.
+ * OneLink management page with search, filters, and row-level actions for generated links.
  */
 'use client';
 
@@ -33,146 +33,22 @@ import {
   useEffect,
   useMemo,
   useState,
-  type MouseEvent,
   type SyntheticEvent,
 } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
+import FilterChipSelect from '@/components/onelink/list/FilterChipSelect';
+import type { FilterChipOption, OneLinkTabType } from '@/components/onelink/list/types';
+import { useOneLinkRowActions } from '@/components/onelink/list/useOneLinkRowActions';
+import {
+  buildEditHref,
+  formatCreatedAt,
+  getCreationTypeFromSearchParams,
+} from '@/components/onelink/list/utils';
 import { filledFieldSx } from '@/components/onelink/stitched/fieldStyles';
 import HugeIcon from '@/components/shared/HugeIcon';
-import { type OneLinkCreationType, sanitizeOneLinkRecords, type OneLinkRecord } from '@/lib/onelinkLinksSchema';
+import { sanitizeOneLinkRecords, type OneLinkRecord } from '@/lib/onelinkLinksSchema';
 
 const searchFieldSx = filledFieldSx;
-
-type FilterChipOption<T extends string> = {
-  label: string;
-  value: T;
-};
-
-type FilterChipSelectProps<T extends string> = {
-  label: string;
-  onChange: (value: T) => void;
-  options: ReadonlyArray<FilterChipOption<T>>;
-  value: T;
-};
-
-type OneLinkDeleteResponse = {
-  deleted?: boolean;
-  error?: string;
-  remoteDeleted?: boolean;
-};
-
-type OneLinkCreateResponse = {
-  error?: string;
-};
-
-type OneLinkDetailResponse = {
-  error?: string;
-  record?: OneLinkRecord;
-  remote?: {
-    oneLinkData?: Record<string, string>;
-  };
-};
-
-function FilterChipSelect<T extends string>({
-  label,
-  onChange,
-  options,
-  value,
-}: FilterChipSelectProps<T>) {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const selectedOption = options.find((option) => option.value === value);
-
-  const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  return (
-    <>
-      <Button
-        endIcon={
-          <Typography component='span' sx={ { color: 'text.secondary', fontSize: 12, lineHeight: 1 } }>
-            ▾
-          </Typography>
-        }
-        onClick={ handleOpen }
-        sx={ {
-          backgroundColor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 0.75,
-          color: 'text.primary',
-          fontSize: 14,
-          fontWeight: 500,
-          minHeight: 40,
-          px: 1.5,
-          py: 1,
-          textTransform: 'none',
-          whiteSpace: 'nowrap',
-          '&:hover': {
-            backgroundColor: 'action.hover',
-            borderColor: 'text.disabled',
-          },
-        } }
-      >
-        {`${label}: ${selectedOption?.label ?? value}`}
-      </Button>
-      <Menu anchorEl={ anchorEl } onClose={ handleClose } open={ open }>
-        {options.map((option) => (
-          <MenuItem
-            key={ option.value }
-            onClick={ () => {
-              onChange(option.value);
-              handleClose();
-            } }
-            selected={ option.value === value }
-          >
-            {option.label}
-          </MenuItem>
-        ))}
-      </Menu>
-    </>
-  );
-}
-
-function formatCreatedAt(value: string): string {
-  const timestamp = Date.parse(value);
-  if (Number.isNaN(timestamp)) {
-    return value;
-  }
-  return new Date(timestamp).toLocaleString();
-}
-
-function buildEditHref(record: OneLinkRecord): string {
-  if (record.creationType === 'link_group') {
-    const targetId = record.groupId || record.id;
-    return `/link-groups/${encodeURIComponent(targetId)}`;
-  }
-
-  return `/create/single-link/${encodeURIComponent(record.id)}`;
-}
-
-function buildLongUrlPreview(templateId: string, oneLinkData: Record<string, string>): string {
-  const query = new URLSearchParams(oneLinkData).toString();
-  if (!query) {
-    return `https://app.onelink.me/${templateId}`;
-  }
-
-  return `https://app.onelink.me/${templateId}?${query}`;
-}
-
-function getCreationTypeFromSearchParams(searchParams: { get: (key: string) => string | null }): OneLinkCreationType {
-  const type = searchParams.get('type');
-  if (type === 'link_group') {
-    return 'link_group';
-  }
-
-  return 'single_link';
-}
 
 /**
  * OneLinkListPage
@@ -190,14 +66,28 @@ function OneLinkListPage() {
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [activeCreationTypeTab, setActiveCreationTypeTab] = useState<OneLinkCreationType>(
+  const [activeCreationTypeTab, setActiveCreationTypeTab] = useState<OneLinkTabType>(
     getCreationTypeFromSearchParams(searchParams),
   );
   const [templateFilter, setTemplateFilter] = useState('all');
-  const [copiedRecordId, setCopiedRecordId] = useState('');
-  const [activeRecordId, setActiveRecordId] = useState('');
-  const [actionsAnchorEl, setActionsAnchorEl] = useState<null | HTMLElement>(null);
-  const [actionsRecordId, setActionsRecordId] = useState('');
+
+  const {
+    activeActionRecord,
+    activeRecordId,
+    actionsAnchorEl,
+    copiedRecordId,
+    handleCloseActionsMenu,
+    handleCopyShortLink,
+    handleDeleteRecord,
+    handleDuplicateRecord,
+    handleOpenActionsMenu,
+    isActionsMenuOpen,
+  } = useOneLinkRowActions({
+    records,
+    setActionError,
+    setActionSuccess,
+    setRecords,
+  });
 
   const loadRecords = useCallback(async () => {
     setIsLoading(true);
@@ -286,146 +176,7 @@ function OneLinkListPage() {
     });
   }, [searchKeyword, tabRecords, templateFilter]);
 
-  const activeActionRecord = useMemo(
-    () => records.find((record) => record.id === actionsRecordId) || null,
-    [actionsRecordId, records],
-  );
-
-  const isActionsMenuOpen = Boolean(actionsAnchorEl);
-
-  const handleCopyShortLink = async (record: OneLinkRecord) => {
-    try {
-      await navigator.clipboard.writeText(record.shortLink);
-      setCopiedRecordId(record.id);
-      setTimeout(() => {
-        setCopiedRecordId('');
-      }, 1500);
-    } catch {
-      setCopiedRecordId('');
-    }
-  };
-
-  const handleDeleteRecord = async (record: OneLinkRecord) => {
-    if (activeRecordId) {
-      return;
-    }
-
-    const confirmed = window.confirm(`Delete "${record.linkName}" from AppsFlyer and this console?`);
-    if (!confirmed) {
-      return;
-    }
-
-    setActiveRecordId(record.id);
-    setActionError('');
-    setActionSuccess('');
-
-    try {
-      const response = await fetch(`/api/onelinks/${encodeURIComponent(record.id)}`, {
-        method: 'DELETE',
-      });
-      const payload = (await response.json().catch(() => null)) as OneLinkDeleteResponse | null;
-
-      if (!response.ok) {
-        setActionError(payload?.error || 'Failed to delete OneLink.');
-        return;
-      }
-
-      setRecords((previous) => previous.filter((item) => item.id !== record.id));
-      if (payload?.remoteDeleted === false) {
-        setActionSuccess('Local record removed. AppsFlyer link was already deleted.');
-      } else {
-        setActionSuccess('OneLink has been deleted.');
-      }
-    } catch {
-      setActionError('Failed to delete OneLink.');
-    } finally {
-      setActiveRecordId('');
-    }
-  };
-
-  const handleDuplicateRecord = async (record: OneLinkRecord) => {
-    if (activeRecordId) {
-      return;
-    }
-
-    setActiveRecordId(record.id);
-    setActionError('');
-    setActionSuccess('');
-
-    try {
-      const detailResponse = await fetch(`/api/onelinks/${encodeURIComponent(record.id)}`, {
-        cache: 'no-store',
-        method: 'GET',
-      });
-      const detailPayload = (await detailResponse.json().catch(() => null)) as OneLinkDetailResponse | null;
-
-      if (!detailResponse.ok || !detailPayload?.record) {
-        setActionError(detailPayload?.error || 'Failed to load OneLink for duplication.');
-        return;
-      }
-
-      const oneLinkData = detailPayload.remote?.oneLinkData || {};
-      const createResponse = await fetch('/api/onelinks', {
-        body: JSON.stringify({
-          brandDomain: detailPayload.record.brandDomain,
-          campaignName: oneLinkData.c || detailPayload.record.campaignName,
-          channel: oneLinkData.af_channel || detailPayload.record.channel,
-          creationType: detailPayload.record.creationType,
-          linkName: `${detailPayload.record.linkName} (Copy)`.slice(0, 160),
-          longUrlPreview: buildLongUrlPreview(detailPayload.record.templateId, oneLinkData),
-          mediaSource: oneLinkData.pid || detailPayload.record.mediaSource,
-          oneLinkData,
-          shortLinkId: '',
-          templateId: detailPayload.record.templateId,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
-      const createPayload = (await createResponse.json().catch(() => null)) as
-        | OneLinkCreateResponse
-        | OneLinkRecord
-        | null;
-      const createErrorMessage =
-        createPayload &&
-        typeof createPayload === 'object' &&
-        'error' in createPayload &&
-        typeof createPayload.error === 'string'
-          ? createPayload.error
-          : '';
-
-      if (!createResponse.ok) {
-        setActionError(createErrorMessage || 'Failed to duplicate OneLink.');
-        return;
-      }
-
-      const [duplicatedRecord] = sanitizeOneLinkRecords([createPayload]);
-      if (!duplicatedRecord) {
-        setActionError('Duplicated OneLink response was invalid.');
-        return;
-      }
-
-      setRecords((previous) => [duplicatedRecord, ...previous]);
-      setActionSuccess(`"${record.linkName}" has been duplicated.`);
-    } catch {
-      setActionError('Failed to duplicate OneLink.');
-    } finally {
-      setActiveRecordId('');
-    }
-  };
-
-  const handleOpenActionsMenu = (event: MouseEvent<HTMLButtonElement>, recordId: string) => {
-    setActionsAnchorEl(event.currentTarget);
-    setActionsRecordId(recordId);
-  };
-
-  const handleCloseActionsMenu = () => {
-    setActionsAnchorEl(null);
-    setActionsRecordId('');
-  };
-
-  const handleCreationTypeTabChange = (_: SyntheticEvent, value: OneLinkCreationType) => {
+  const handleCreationTypeTabChange = (_: SyntheticEvent, value: OneLinkTabType) => {
     setActiveCreationTypeTab(value);
 
     const nextParams = new URLSearchParams(searchParams.toString());

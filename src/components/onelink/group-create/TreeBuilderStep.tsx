@@ -3,7 +3,7 @@
  */
 import { Alert, Autocomplete, Button, ClickAwayListener, Stack, TextField, Typography } from '@mui/material';
 import type { ClipboardEvent, KeyboardEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { LinkGroupNodeLevel } from '@/lib/onelinkGroupTypes';
 import { formatLevelLabel } from './treeUtils';
 import NodeList, { type NodeListProps } from './NodeList';
@@ -84,14 +84,6 @@ function TreeBuilderStep({
     skipSyncCountRef.current -= 1;
     return true;
   };
-
-  useEffect(() => {
-    if (!isLeafSelection) {
-      return;
-    }
-
-    setIsPresetDropdownOpen(false);
-  }, [isLeafSelection]);
 
   return (
     <Stack spacing={ 1.5 }>

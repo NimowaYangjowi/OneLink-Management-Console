@@ -2,7 +2,7 @@
  * Collapsible tree summary panel for hierarchy verification.
  */
 import { Box, Button, Paper, Stack, Typography } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { EditorTreeNode, SnippetPreview } from './types';
 
 type TreePreviewPanelProps = {
@@ -131,7 +131,10 @@ function TreePreviewPanel({
   totalNodeCount,
   treePreviewExpanded,
 }: TreePreviewPanelProps) {
-  const [collapsedRowKeys, setCollapsedRowKeys] = useState<string[]>([]);
+  const [collapsedState, setCollapsedState] = useState<{ rowKeys: string[]; scopeKey: string }>({
+    rowKeys: [],
+    scopeKey: '',
+  });
   const previewScopeKey = useMemo(
     () => previewSnippets.map((snippet) => snippet.nodeIds.join('/')).join('|'),
     [previewSnippets],
@@ -148,23 +151,18 @@ function TreePreviewPanel({
     () => new Set(combinedRows.filter((row) => !row.isLeaf).map((row) => row.key)),
     [combinedRows],
   );
-  const collapsedRowKeySet = useMemo(
-    () => new Set(collapsedRowKeys),
-    [collapsedRowKeys],
+  const collapsedRowKeys = useMemo(
+    () => (collapsedState.scopeKey === previewScopeKey ? collapsedState.rowKeys : []),
+    [collapsedState, previewScopeKey],
   );
-
-  useEffect(() => {
-    setCollapsedRowKeys((previous) => {
-      const next = previous.filter((rowKey) => branchRowKeySet.has(rowKey));
-      return next.length === previous.length ? previous : next;
-    });
-  }, [branchRowKeySet]);
-
-  useEffect(() => {
-    // Keep manual collapse/expand during the same scope, but reset when external
-    // selection scope changes so newly filtered trees are immediately visible.
-    setCollapsedRowKeys([]);
-  }, [previewScopeKey]);
+  const normalizedCollapsedRowKeys = useMemo(
+    () => collapsedRowKeys.filter((rowKey) => branchRowKeySet.has(rowKey)),
+    [branchRowKeySet, collapsedRowKeys],
+  );
+  const collapsedRowKeySet = useMemo(
+    () => new Set(normalizedCollapsedRowKeys),
+    [normalizedCollapsedRowKeys],
+  );
 
   const visibleRows = useMemo(() => {
     return combinedRows.filter((row) => {
@@ -282,11 +280,18 @@ function TreePreviewPanel({
                                     aria-label={ isBranchCollapsed ? 'Expand row' : 'Collapse row' }
                                     component='button'
                                     onClick={ () => {
-                                      setCollapsedRowKeys((previous) => (
-                                        previous.includes(row.key)
-                                          ? previous.filter((rowKey) => rowKey !== row.key)
-                                          : [...previous, row.key]
-                                      ));
+                                      setCollapsedState((previous) => {
+                                        const baseRowKeys = previous.scopeKey === previewScopeKey
+                                          ? previous.rowKeys.filter((rowKey) => branchRowKeySet.has(rowKey))
+                                          : [];
+                                        const nextRowKeys = baseRowKeys.includes(row.key)
+                                          ? baseRowKeys.filter((rowKey) => rowKey !== row.key)
+                                          : [...baseRowKeys, row.key];
+                                        return {
+                                          rowKeys: nextRowKeys,
+                                          scopeKey: previewScopeKey,
+                                        };
+                                      });
                                     } }
                                     sx={ {
                                       backgroundColor: 'transparent',
