@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-17T05:48:26.567Z",
+  "generatedAt": "2026-02-18T06:55:29.101Z",
   "source": "design/design-system.pen",
   "themes": {
     "Mode": [
@@ -10,12 +10,12 @@
   "tokenCount": 52,
   "tokens": {
     "--accent": {
-      "dark": "#87ceeb",
+      "dark": "#4f46e5",
       "light": "#eef2ff",
       "type": "color"
     },
     "--accent-foreground": {
-      "dark": "#000000",
+      "dark": "#ffffff",
       "light": "#4f46e5",
       "type": "color"
     },
@@ -40,28 +40,28 @@
       "type": "color"
     },
     "--chart-1": {
-      "dark": "#ff99cc",
+      "dark": "#4f46e5",
       "light": "#4f46e5",
       "type": "color"
     },
     "--chart-2": {
-      "dark": "#33cc33",
-      "light": "#0ea5e9",
+      "dark": "#4f46e5",
+      "light": "#4f46e5",
       "type": "color"
     },
     "--chart-3": {
-      "dark": "#87ceeb",
-      "light": "#22c55e",
+      "dark": "#4f46e5",
+      "light": "#4f46e5",
       "type": "color"
     },
     "--chart-4": {
-      "dark": "#ffff00",
-      "light": "#f59e0b",
+      "dark": "#4f46e5",
+      "light": "#4f46e5",
       "type": "color"
     },
     "--chart-5": {
-      "dark": "#ffcc00",
-      "light": "#ef4444",
+      "dark": "#4f46e5",
+      "light": "#4f46e5",
       "type": "color"
     },
     "--destructive": {
@@ -76,17 +76,17 @@
     },
     "--font-mono": {
       "dark": null,
-      "light": "Roboto Mono, monospace",
+      "light": "var(--font-inter), \"Helvetica Neue\", Arial, sans-serif",
       "type": "string"
     },
     "--font-sans": {
       "dark": null,
-      "light": "Poppins, sans-serif",
+      "light": "var(--font-inter), \"Helvetica Neue\", Arial, sans-serif",
       "type": "string"
     },
     "--font-serif": {
       "dark": null,
-      "light": "Aref Ruqaa, ui-serif, serif",
+      "light": "var(--font-inter), \"Helvetica Neue\", Arial, sans-serif",
       "type": "string"
     },
     "--foreground": {
@@ -120,12 +120,12 @@
       "type": "color"
     },
     "--primary": {
-      "dark": "#ff99cc",
+      "dark": "#4f46e5",
       "light": "#4f46e5",
       "type": "color"
     },
     "--primary-foreground": {
-      "dark": "#000000",
+      "dark": "#ffffff",
       "light": "#ffffff",
       "type": "color"
     },
@@ -135,17 +135,17 @@
       "type": "string"
     },
     "--ring": {
-      "dark": "#ff99cc",
+      "dark": "#4f46e5",
       "light": "#4f46e5",
       "type": "color"
     },
     "--secondary": {
-      "dark": "#33cc33",
+      "dark": "#444444",
       "light": "#f1f5f9",
       "type": "color"
     },
     "--secondary-foreground": {
-      "dark": "#000000",
+      "dark": "#e5e5e5",
       "light": "#0f172a",
       "type": "color"
     },
@@ -225,12 +225,12 @@
       "type": "color"
     },
     "--sidebar-accent": {
-      "dark": "#87ceeb",
+      "dark": "#2f3436",
       "light": "#f1f5f9",
       "type": "color"
     },
     "--sidebar-accent-foreground": {
-      "dark": "#000000",
+      "dark": "#e5e5e5",
       "light": "#0f172a",
       "type": "color"
     },
@@ -245,17 +245,17 @@
       "type": "color"
     },
     "--sidebar-primary": {
-      "dark": "#ff99cc",
+      "dark": "#4f46e5",
       "light": "#4f46e5",
       "type": "color"
     },
     "--sidebar-primary-foreground": {
-      "dark": "#000000",
+      "dark": "#ffffff",
       "light": "#ffffff",
       "type": "color"
     },
     "--sidebar-ring": {
-      "dark": "#ff99cc",
+      "dark": "#4f46e5",
       "light": "#4f46e5",
       "type": "color"
     },

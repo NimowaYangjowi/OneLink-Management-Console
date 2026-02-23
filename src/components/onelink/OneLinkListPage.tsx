@@ -27,33 +27,21 @@ import {
 } from '@mui/material';
 import { MoreHorizontal, Search } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type MouseEvent,
+  type SyntheticEvent,
+} from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
+import { filledFieldSx } from '@/components/onelink/stitched/fieldStyles';
 import HugeIcon from '@/components/shared/HugeIcon';
 import { type OneLinkCreationType, sanitizeOneLinkRecords, type OneLinkRecord } from '@/lib/onelinkLinksSchema';
 
-const searchFieldSx = {
-  '& .MuiOutlinedInput-root': {
-    minHeight: 50,
-    '& .MuiOutlinedInput-input': {
-      fontSize: 14,
-      px: 1.75,
-      py: 1.75,
-    },
-    '& fieldset': {
-      borderColor: 'divider',
-    },
-    '&:hover fieldset': {
-      borderColor: 'divider',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: 'primary.main',
-      borderWidth: 1,
-    },
-    backgroundColor: 'background.paper',
-    borderRadius: 0.5,
-  },
-};
+const searchFieldSx = filledFieldSx;
 
 type FilterChipOption<T extends string> = {
   label: string;
@@ -112,18 +100,17 @@ function FilterChipSelect<T extends string>({
           </Typography>
         }
         onClick={ handleOpen }
-        size='small'
         sx={ {
           backgroundColor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 999,
+          borderRadius: 0.75,
           color: 'text.primary',
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 500,
-          minHeight: 34,
-          px: 1.25,
-          py: 0.375,
+          minHeight: 40,
+          px: 1.5,
+          py: 1,
           textTransform: 'none',
           whiteSpace: 'nowrap',
           '&:hover': {
@@ -161,8 +148,12 @@ function formatCreatedAt(value: string): string {
 }
 
 function buildEditHref(record: OneLinkRecord): string {
-  const routeSegment = record.creationType === 'link_group' ? 'link-group' : 'single-link';
-  return `/create/${routeSegment}/${encodeURIComponent(record.id)}`;
+  if (record.creationType === 'link_group') {
+    const targetId = record.groupId || record.id;
+    return `/link-groups/${encodeURIComponent(targetId)}`;
+  }
+
+  return `/create/single-link/${encodeURIComponent(record.id)}`;
 }
 
 function buildLongUrlPreview(templateId: string, oneLinkData: Record<string, string>): string {
@@ -174,6 +165,15 @@ function buildLongUrlPreview(templateId: string, oneLinkData: Record<string, str
   return `https://app.onelink.me/${templateId}?${query}`;
 }
 
+function getCreationTypeFromSearchParams(searchParams: { get: (key: string) => string | null }): OneLinkCreationType {
+  const type = searchParams.get('type');
+  if (type === 'link_group') {
+    return 'link_group';
+  }
+
+  return 'single_link';
+}
+
 /**
  * OneLinkListPage
  *
@@ -181,13 +181,18 @@ function buildLongUrlPreview(templateId: string, oneLinkData: Record<string, str
  * <OneLinkListPage />
  */
 function OneLinkListPage() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [records, setRecords] = useState<OneLinkRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [activeCreationTypeTab, setActiveCreationTypeTab] = useState<OneLinkCreationType>('single_link');
+  const [activeCreationTypeTab, setActiveCreationTypeTab] = useState<OneLinkCreationType>(
+    getCreationTypeFromSearchParams(searchParams),
+  );
   const [templateFilter, setTemplateFilter] = useState('all');
   const [copiedRecordId, setCopiedRecordId] = useState('');
   const [activeRecordId, setActiveRecordId] = useState('');
@@ -223,6 +228,10 @@ function OneLinkListPage() {
   useEffect(() => {
     void loadRecords();
   }, [loadRecords]);
+
+  useEffect(() => {
+    setActiveCreationTypeTab(getCreationTypeFromSearchParams(searchParams));
+  }, [searchParams]);
 
   useEffect(() => {
     setTemplateFilter('all');
@@ -416,6 +425,20 @@ function OneLinkListPage() {
     setActionsRecordId('');
   };
 
+  const handleCreationTypeTabChange = (_: SyntheticEvent, value: OneLinkCreationType) => {
+    setActiveCreationTypeTab(value);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (value === 'link_group') {
+      nextParams.set('type', 'link_group');
+    } else {
+      nextParams.delete('type');
+    }
+
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  };
+
   return (
     <ConsoleLayout title='OneLink Management'>
       <Box sx={ { maxWidth: 1600, mx: 'auto', px: { md: 4, xs: 2 }, py: 4, width: '100%' } }>
@@ -425,7 +448,7 @@ function OneLinkListPage() {
             sx={ {
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 0.75,
+              borderRadius: 1,
               p: 2,
             } }
           >
@@ -438,9 +461,7 @@ function OneLinkListPage() {
               >
                 <Tabs
                   aria-label='OneLink type tabs'
-                  onChange={ (_, value) => {
-                    setActiveCreationTypeTab(value as OneLinkCreationType);
-                  } }
+                  onChange={ handleCreationTypeTabChange }
                   sx={ {
                     borderBottom: '1px solid',
                     borderColor: 'divider',
@@ -459,7 +480,11 @@ function OneLinkListPage() {
                   <Tab label='Single Link' value='single_link' />
                   <Tab label='Link Group' value='link_group' />
                 </Tabs>
-                <Button component={ Link } href='/create' size='small' variant='contained'>
+                <Button
+                  component={ Link }
+                  href='/create'
+                  variant='contained'
+                >
                   Create OneLink
                 </Button>
               </Stack>
@@ -509,7 +534,7 @@ function OneLinkListPage() {
               sx={ {
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 0.75,
+                borderRadius: 1,
                 p: 4,
                 textAlign: 'center',
               } }
@@ -524,7 +549,7 @@ function OneLinkListPage() {
           ) : null}
 
           {filteredRecords.length > 0 ? (
-            <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 0.75 } }>
+            <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 1 } }>
               <TableContainer>
                 <Table sx={ { minWidth: 1100 } }>
                   <TableHead>
@@ -617,7 +642,11 @@ function OneLinkListPage() {
               </MenuItem>
             ) : null}
             <MenuItem
-              disabled={ !activeActionRecord || activeRecordId === activeActionRecord?.id }
+              disabled={
+                !activeActionRecord
+                || activeRecordId === activeActionRecord?.id
+                || activeActionRecord.creationType === 'link_group'
+              }
               onClick={ () => {
                 if (!activeActionRecord) {
                   return;
@@ -626,7 +655,7 @@ function OneLinkListPage() {
                 void handleDuplicateRecord(activeActionRecord);
               } }
             >
-              Duplicate
+              Duplicate (Single Only)
             </MenuItem>
             <MenuItem
               disabled={ !activeActionRecord || activeRecordId === activeActionRecord?.id }

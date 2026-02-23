@@ -2,8 +2,10 @@ import { createTheme } from '@mui/material/styles';
 import type { Shadows } from '@mui/material/styles';
 import { DESIGN_TOKENS } from '@/styles/tokens/design-tokens';
 
-const fontSans = 'Poppins, sans-serif';
-const fontSerif = '"Aref Ruqaa", ui-serif, serif';
+const fontSans = 'var(--font-sans)';
+const fontSerif = 'var(--font-serif)';
+const penControlRadius = 6;
+const penCardRadius = 8;
 
 export const pencilTokens = {
   primary: DESIGN_TOKENS['--primary'],
@@ -159,6 +161,107 @@ const defaultTheme = createTheme({
     },
   },
   shadows: dimmedShadows,
+  components: {
+    MuiPaper: {
+      defaultProps: {
+        elevation: 0,
+      },
+      styleOverrides: {
+        root: {
+          borderRadius: penCardRadius,
+        },
+      },
+    },
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderRadius: penControlRadius,
+          fontSize: theme.typography.pxToRem(14),
+          fontWeight: 500,
+          lineHeight: 1.4286,
+          minHeight: 40,
+          padding: '8px 16px',
+          textTransform: 'none',
+        }),
+        sizeSmall: {
+          minHeight: 36,
+          padding: '6px 12px',
+        },
+        sizeLarge: {
+          minHeight: 40,
+          padding: '8px 24px',
+        },
+        outlined: ({ theme }) => ({
+          backgroundColor: theme.palette.background.paper,
+          borderColor: theme.palette.divider,
+          boxShadow: customShadows.sm,
+          '&:hover': {
+            backgroundColor: theme.palette.background.default,
+            borderColor: theme.palette.text.disabled,
+            boxShadow: customShadows.sm,
+          },
+        }),
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        size: 'small',
+        variant: 'outlined',
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: theme.palette.background.default,
+          borderRadius: penControlRadius,
+          minHeight: 40,
+          '& .MuiOutlinedInput-input': {
+            fontSize: 14,
+            lineHeight: 1.4286,
+            padding: '10px 12px',
+          },
+          '&.MuiInputBase-multiline': {
+            alignItems: 'flex-start',
+            minHeight: 'auto',
+            padding: '10px 12px',
+          },
+          '& .MuiOutlinedInput-input.MuiInputBase-inputMultiline': {
+            padding: 0,
+          },
+          '& fieldset': {
+            borderColor: theme.palette.divider,
+          },
+          '&:hover fieldset': {
+            borderColor: theme.palette.divider,
+          },
+          '&.Mui-focused fieldset': {
+            borderColor: theme.palette.primary.main,
+            borderWidth: 1,
+          },
+        }),
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          fontSize: 12,
+          fontWeight: 600,
+          minHeight: 24,
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: penControlRadius,
+        },
+      },
+    },
+  },
 });
 
 export default defaultTheme;

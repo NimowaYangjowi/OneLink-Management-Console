@@ -5,7 +5,7 @@
 
 import { Add01Icon, Settings02Icon } from '@hugeicons/core-free-icons';
 import type { IconSvgElement } from '@hugeicons/react';
-import { Box, Button, IconButton, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, IconButton, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { ChevronLeft, ChevronRight, List } from 'lucide-react';
 import Link from 'next/link';
@@ -28,7 +28,6 @@ type NavItem = {
 
 const navigationItems: NavItem[] = [
   { fallbackIcon: List, href: '/links', label: 'OneLink Management' },
-  { fallbackIcon: List, href: '/link-groups', label: 'Link Groups' },
   { href: '/create', label: 'Create OneLink', icon: Add01Icon },
   { href: '/settings', label: 'Settings', icon: Settings02Icon },
 ];
@@ -51,34 +50,51 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
   const pathname = usePathname();
   const theme = useTheme();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const isNarrowViewport = useMediaQuery(theme.breakpoints.down('lg'));
+  const isSidebarCollapsedForLayout = isNarrowViewport || isSidebarCollapsed;
 
   return (
-    <Box sx={ { backgroundColor: 'background.default', display: 'flex', minHeight: '100vh' } }>
+    <Box
+      sx={ {
+        backgroundColor: 'background.default',
+        display: 'flex',
+        maxWidth: '100%',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+        width: '100%',
+      } }
+    >
       <Box
         component='aside'
         sx={ {
           backgroundColor: 'background.paper',
           borderRight: '1px solid',
           borderRightColor: 'divider',
-          display: { lg: 'flex', xs: 'none' },
+          display: 'flex',
           flexDirection: 'column',
           height: '100vh',
           left: 0,
           position: 'fixed',
           top: 0,
           transition: 'width 180ms ease',
-          width: isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
+          width: isSidebarCollapsedForLayout ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
           zIndex: 30,
         } }
       >
-        <Box sx={ { px: 1.5, py: 0.5 } }>
-          <Stack alignItems='center' direction='row' justifyContent={ isSidebarCollapsed ? 'center' : 'flex-start' } spacing={ 0.75 }>
-            {!isSidebarCollapsed && (
+        <Box sx={ { px: 1.5, py: 1 } }>
+          <Stack
+            alignItems='center'
+            direction='row'
+            justifyContent={ isSidebarCollapsedForLayout ? 'center' : 'flex-start' }
+            spacing={ 0.75 }
+            sx={ { minHeight: 44 } }
+          >
+            {!isSidebarCollapsedForLayout && (
               <Box
                 alt='OneLink Console'
                 component='img'
                 src='/console-logo.png'
-                sx={ { display: 'block', maxWidth: '100%', width: 120 } }
+                sx={ { display: 'block', height: 'auto', maxWidth: '100%', objectFit: 'contain', width: 160 } }
               />
             )}
           </Stack>
@@ -91,8 +107,6 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
                 ? pathname.startsWith('/create')
                 : item.href === '/links'
                   ? pathname.startsWith('/links')
-                  : item.href === '/link-groups'
-                    ? pathname.startsWith('/link-groups')
                   : pathname === item.href;
             return (
               <Button
@@ -106,26 +120,26 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
                 sx={ {
                   '& .MuiButton-startIcon': {
                     m: 0,
-                    mr: isSidebarCollapsed ? 0 : 1.25,
+                    mr: isSidebarCollapsedForLayout ? 0 : 1,
                   },
                   '&:hover': {
                     backgroundColor: 'secondary.main',
                     color: 'text.primary',
                   },
                   backgroundColor: isActive ? 'secondary.main' : 'transparent',
-                  borderRadius: 0.5,
+                  borderRadius: 0.75,
                   color: isActive ? 'text.primary' : 'text.secondary',
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 500,
-                  justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-                  minHeight: 42,
+                  justifyContent: isSidebarCollapsedForLayout ? 'center' : 'flex-start',
+                  minHeight: 40,
                   minWidth: 0,
-                  px: isSidebarCollapsed ? 0.5 : 1.25,
+                  px: isSidebarCollapsedForLayout ? 0.5 : 1,
                   textTransform: 'none',
                 } }
                 variant='text'
               >
-                {!isSidebarCollapsed ? item.label : null}
+                {!isSidebarCollapsedForLayout ? item.label : null}
               </Button>
             );
           })}
@@ -134,7 +148,7 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
         <Box sx={ { borderTop: '1px solid', borderTopColor: 'divider', p: 1.5 } }>
           <Stack alignItems='center' direction='row' spacing={ 1.25 }>
             <Skeleton animation='wave' height={ 36 } sx={ { flexShrink: 0 } } variant='circular' width={ 36 } />
-            {!isSidebarCollapsed && (
+            {!isSidebarCollapsedForLayout && (
               <Box sx={ { minWidth: 0, width: '100%' } }>
                 <Skeleton
                   animation='wave'
@@ -148,40 +162,50 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
             )}
           </Stack>
         </Box>
-        <IconButton
-          aria-label={ isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar' }
-          onClick={ () => setIsSidebarCollapsed((previous) => !previous) }
-          size='small'
-          sx={ {
-            backgroundColor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 999,
-            bottom: 14,
-            boxShadow: theme.shadows[1],
-            color: 'text.secondary',
-            position: 'absolute',
-            right: -14,
-            '&:hover': {
-              backgroundColor: 'secondary.main',
-            },
-          } }
-        >
-          <HugeIcon fallback={ isSidebarCollapsed ? ChevronRight : ChevronLeft } size={ 16 } />
-        </IconButton>
+        {!isNarrowViewport && (
+          <IconButton
+            aria-label={ isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar' }
+            onClick={ () => setIsSidebarCollapsed((previous) => !previous) }
+            size='small'
+            sx={ {
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 999,
+              bottom: 14,
+              boxShadow: theme.shadows[1],
+              color: 'text.secondary',
+              position: 'absolute',
+              right: -14,
+              '&:hover': {
+                backgroundColor: 'secondary.main',
+              },
+            } }
+          >
+            <HugeIcon fallback={ isSidebarCollapsed ? ChevronRight : ChevronLeft } size={ 16 } />
+          </IconButton>
+        )}
       </Box>
 
       <Box
         component='main'
         sx={ {
-          flex: 1,
+          flex: '0 0 auto',
           minHeight: '100vh',
-          ml: { lg: `${isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}px` },
+          ml: {
+            lg: `${isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}px`,
+            xs: `${SIDEBAR_COLLAPSED_WIDTH}px`,
+          },
+          overflowX: 'hidden',
           pb: 8,
           transition: theme.transitions.create('margin-left', {
             duration: theme.transitions.duration.shorter,
             easing: theme.transitions.easing.easeInOut,
           }),
+          width: {
+            lg: `calc(100% - ${isSidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}px)`,
+            xs: `calc(100% - ${SIDEBAR_COLLAPSED_WIDTH}px)`,
+          },
         } }
       >
         <Box

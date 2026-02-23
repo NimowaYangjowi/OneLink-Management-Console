@@ -82,7 +82,7 @@ function SocialMediaPreviewSection({
               backgroundColor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 0.5,
+              borderRadius: 1,
               maxWidth: 360,
               mx: 'auto',
               overflow: 'hidden',

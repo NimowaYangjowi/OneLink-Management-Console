@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Apply the current OneLink stitched page token palette to the Light-mode values in design-system.pen.
+ * Apply the canonical OneLink token palette to Light-mode values in design-system.pen.
  */
 
 import fs from 'node:fs';
@@ -17,12 +17,15 @@ const lightPaletteOverrides = {
   '--card': '#ffffff',
   '--card-foreground': '#0f172a',
   '--chart-1': '#4f46e5',
-  '--chart-2': '#0ea5e9',
-  '--chart-3': '#22c55e',
-  '--chart-4': '#f59e0b',
-  '--chart-5': '#ef4444',
+  '--chart-2': '#4f46e5',
+  '--chart-3': '#4f46e5',
+  '--chart-4': '#4f46e5',
+  '--chart-5': '#4f46e5',
   '--destructive': '#ef4444',
   '--destructive-foreground': '#ffffff',
+  '--font-mono': 'var(--font-inter), "Helvetica Neue", Arial, sans-serif',
+  '--font-sans': 'var(--font-inter), "Helvetica Neue", Arial, sans-serif',
+  '--font-serif': 'var(--font-inter), "Helvetica Neue", Arial, sans-serif',
   '--foreground': '#0f172a',
   '--input': '#e2e8f0',
   '--muted': '#f1f5f9',

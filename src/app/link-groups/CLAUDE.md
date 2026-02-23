@@ -1,8 +1,8 @@
 # src/app/link-groups
 
-Route segment for Link Group list and detail pages.
+Route segment for Link Group compatibility paths.
 
 ## Files
 
-- `page.tsx` - Link Group list page.
+- `page.tsx` - Redirects to `/links?type=link_group`.
 - `[id]/page.tsx` - Link Group detail page.

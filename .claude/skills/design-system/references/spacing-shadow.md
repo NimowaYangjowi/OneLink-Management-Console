@@ -2,8 +2,9 @@
 
 Spacing, shadow, and shape tokens.
 
-Source: `src/styles/themes/default.ts`
-Note: These tokens are implementation-level and separate from `design/design-system.pen` variable tokens.
+Sources:
+- `src/styles/themes/default.ts`
+- `design/design-system.pen` (`--radius`, `--shadow*`, `--spacing`)
 
 ## Spacing (간격)
 
@@ -84,26 +85,21 @@ elevation4: customShadows.xl
 
 ## Shape (모양)
 
-### Design Principle: Sharp Corners
+### Design Principle: Subtle Rounded Corners
 
 ```jsx
 // 기본 설정 (테마에서)
 shape: {
-  borderRadius: 0
+  borderRadius: 8
 }
 
 // 모든 컴포넌트에 자동 적용됨
-<Button />  // borderRadius: 0
-<Card />   // borderRadius: 0
-<Paper />  // borderRadius: 0
+<Button />  // borderRadius: 8 기반
+<Card />   // borderRadius: 8 기반
+<Paper />  // borderRadius: 8 기반
 ```
 
-### 예외: Chip
-
-```jsx
-// Chip만 약간의 radius 허용
-<Chip sx={{ borderRadius: '4px' }} />
-```
+Use local overrides only when the `.pen` component spec explicitly requires it.
 
 ## Breakpoints (반응형)
 
@@ -178,8 +174,8 @@ transitions: {
 
 ```jsx
 <Box sx={{
-  // Sharp corners
-  borderRadius: 0,
+  // Subtle rounded corners
+  borderRadius: 1,
 
   // Dimmed shadow
   boxShadow: theme => theme.customShadows.lg,

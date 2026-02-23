@@ -12,8 +12,8 @@ if ! command -v codex >/dev/null 2>&1; then
 fi
 
 cleanup() {
-  if [[ -x "$STOP_HOOK" ]]; then
-    CODEX_PROJECT_DIR="$ROOT_DIR" "$STOP_HOOK" || true
+  if [[ -f "$STOP_HOOK" ]]; then
+    CODEX_PROJECT_DIR="$ROOT_DIR" bash "$STOP_HOOK"
   fi
 }
 

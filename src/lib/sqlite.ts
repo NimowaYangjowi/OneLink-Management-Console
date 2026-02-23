@@ -35,6 +35,17 @@ function ensureDatabaseDirectory(filePath: string): void {
   fs.mkdirSync(directoryPath, { recursive: true });
 }
 
+export function ensureOneLinkLinkGroupColumns(db: Database.Database): void {
+  ensureColumn(db, 'onelink_links', 'group_id', 'TEXT');
+  ensureColumn(db, 'onelink_links', 'group_item_id', 'TEXT');
+  ensureColumn(db, 'onelink_link_groups', 'scoped_params_json', 'TEXT NOT NULL DEFAULT \'[]\'');
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_onelink_links_group_id ON onelink_links(group_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS uniq_onelink_links_group_item_id ON onelink_links(group_item_id);
+  `);
+}
+
 function initializeSchema(db: Database.Database): void {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
@@ -69,6 +80,7 @@ function initializeSchema(db: Database.Database): void {
       brand_domain TEXT NOT NULL DEFAULT '',
       tree_config_json TEXT NOT NULL,
       global_params_json TEXT NOT NULL DEFAULT '{}',
+      scoped_params_json TEXT NOT NULL DEFAULT '[]',
       planned_count INTEGER NOT NULL,
       success_count INTEGER NOT NULL DEFAULT 0,
       failed_count INTEGER NOT NULL DEFAULT 0,
@@ -109,7 +121,6 @@ function initializeSchema(db: Database.Database): void {
       FOREIGN KEY (leaf_node_id) REFERENCES onelink_link_group_nodes(id) ON DELETE CASCADE
     );
 
-    CREATE INDEX IF NOT EXISTS idx_onelink_links_group_id ON onelink_links(group_id);
     CREATE INDEX IF NOT EXISTS idx_group_nodes_group_id ON onelink_link_group_nodes(group_id);
     CREATE INDEX IF NOT EXISTS idx_group_nodes_parent_node_id ON onelink_link_group_nodes(parent_node_id);
     CREATE INDEX IF NOT EXISTS idx_group_items_group_id ON onelink_link_group_items(group_id);
@@ -118,8 +129,7 @@ function initializeSchema(db: Database.Database): void {
       ON onelink_link_group_items(group_id, variant_key);
   `);
 
-  ensureColumn(db, 'onelink_links', 'group_id', 'TEXT');
-  ensureColumn(db, 'onelink_links', 'group_item_id', 'TEXT');
+  ensureOneLinkLinkGroupColumns(db);
 }
 
 /**

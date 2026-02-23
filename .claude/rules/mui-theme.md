@@ -1,75 +1,62 @@
 # MUI Custom Theme (SHOULD)
 
-MUI 커스텀 테마 설정 규칙 - **Pencil 색상 + Design Principles** 통합
+MUI custom theme rules for OneLinkManagingConsole.
 
-## 테마 파일 관리
+## Theme File
 
-- 커스텀 테마는 별도의 파일로 관리한다
-- 위치: `src/styles/themes/default.js`
-- Pencil 토큰이 MUI palette로 매핑되어 있음
+- Location: `src/styles/themes/default.ts`
+- Tokens source: `design/design-system.pen` → `src/styles/tokens/design-tokens.ts`
 
-## Color (Pencil 기반)
+## Color Rules
 
-### Primary Color (--primary)
-```jsx
-primary: {
-  main: '#171717',           // Pencil --primary
-  contrastText: '#fafafa',   // Pencil --primary-foreground
-}
+### Single Point Color
+
+- Use one purple point color token: `--primary: #4f46e5`
+- Keep action/interactive emphasis on `primary.main` and `ring`.
+- Do not introduce additional brand accent hues in components.
+
+### Neutral Surfaces
+
+Use neutral tokens for default UI states:
+
+```tsx
+background.default  // --background
+background.paper    // --card
+text.primary        // --foreground
+text.secondary      // --muted-foreground
+divider             // --border
 ```
 
-### Secondary Color (--secondary)
-```jsx
-secondary: {
-  main: '#f5f5f5',           // Pencil --secondary
-  contrastText: '#171717',   // Pencil --secondary-foreground
-}
-```
+### Pencil → MUI Mapping
 
-### 전체 Pencil → MUI 매핑
-```jsx
-// src/styles/themes/default.js 에서 정의됨
+```tsx
 const pencilTokens = {
-  primary: '#171717',
-  primaryForeground: '#fafafa',
-  secondary: '#f5f5f5',
-  secondaryForeground: '#171717',
-  background: '#fafafa',
-  foreground: '#0a0a0a',
-  muted: '#f5f5f5',
-  mutedForeground: '#737373',
-  destructive: '#e7000b',
-  border: '#e5e5e5',
-  // ... 등
+  primary: DESIGN_TOKENS['--primary'],
+  primaryForeground: DESIGN_TOKENS['--primary-foreground'],
+  secondary: DESIGN_TOKENS['--secondary'],
+  secondaryForeground: DESIGN_TOKENS['--secondary-foreground'],
+  background: DESIGN_TOKENS['--background'],
+  foreground: DESIGN_TOKENS['--foreground'],
+  border: DESIGN_TOKENS['--border'],
+  mutedForeground: DESIGN_TOKENS['--muted-foreground'],
+  destructive: DESIGN_TOKENS['--destructive'],
 };
 ```
 
-## Typography
+## Typography Rules
 
-### 본문
-- **Pretendard Variable** 버전을 웹폰트로 사용
-
-### Headline
-- **세리프 폰트**: Google Font의 **Fraunces** (h1-h4)
-- **산세리프 폰트**: Pretendard (h5-h6, body)
-
-```jsx
-h1: {
-  fontFamily: '"Fraunces", "Noto Serif KR", Georgia, serif',
-  fontWeight: 500,
-  fontSize: '3rem',
-}
-```
+- Inter must be used everywhere.
+- Font tokens:
+  - `--font-sans: var(--font-inter), "Helvetica Neue", Arial, sans-serif`
+  - `--font-serif: var(--font-inter), "Helvetica Neue", Arial, sans-serif`
+  - `--font-mono: var(--font-inter), "Helvetica Neue", Arial, sans-serif`
+- Avoid local font imports that conflict with tokenized Inter.
 
 ## Elevation
 
-Paper에 기본적으로 사용되는 elevation의 box shadow 설정:
+Use dimmed shadow presets from theme:
 
-- x, y offset: **0** (Dimmed Shadow)
-- opacity 값: 낮춤
-- blur 값: 높임
-
-```jsx
+```tsx
 customShadows: {
   none: 'none',
   sm: '0 0 12px rgba(0, 0, 0, 0.06)',
@@ -81,44 +68,22 @@ customShadows: {
 
 ## Border Radius
 
-모든 컴포넌트의 borderRadius는 **0** (Sharp Corners)
+Global shape:
 
-```jsx
+```tsx
 shape: {
-  borderRadius: 0
+  borderRadius: 8,
 }
 ```
 
-## 테마 사용 예시
+## Usage
 
-```jsx
-import defaultTheme, { pencilTokens } from '@/styles/themes/default';
-import { ThemeProvider } from '@mui/material/styles';
+Prefer `theme.palette` in `sx`:
 
-function App() {
-  return (
-    <ThemeProvider theme={defaultTheme}>
-      {/* 앱 내용 */}
-    </ThemeProvider>
-  );
-}
-```
-
-### 컴포넌트에서 Pencil 토큰 직접 사용
-```jsx
-import { pencilTokens } from '@/styles/themes/default';
-
-// sx prop에서 사용
+```tsx
 sx={{
-  backgroundColor: pencilTokens.muted,
-  borderColor: pencilTokens.border,
-  color: pencilTokens.foreground,
-}}
-
-// 또는 MUI palette 사용 (권장)
-sx={{
-  backgroundColor: 'secondary.main',    // = pencilTokens.secondary
-  borderColor: 'divider',               // = pencilTokens.border
-  color: 'text.primary',                // = pencilTokens.foreground
+  backgroundColor: 'background.paper',
+  borderColor: 'divider',
+  color: 'text.primary',
 }}
 ```

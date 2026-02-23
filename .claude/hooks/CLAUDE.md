@@ -1,228 +1,48 @@
-# .claude/hooks - Claude Code Stop Hook
+# .claude/hooks - Stop Commit Gate
 
-Claude Code 세션 종료 시 자동으로 실행되는 훅 시스템입니다.
+Claude/Codex 세션 종료 시 실행되는 커밋 게이트 문서입니다.
 
-## 📋 개요
+## 개요
 
-### 용도
-Claude가 작업을 완료하고 응답을 마칠 때 자동으로 Git 변경사항을 커밋합니다.
+- 경로: `.claude/hooks/auto-commit.sh`
+- 실행 시점: Stop hook (`.claude/settings.json`) 또는 Codex 브리지(`.codex/hooks/on-stop.sh`)
+- 동작: 자동 커밋을 수행하지 않고, 안전한 변경사항이 남아 있으면 종료를 차단하고 모델에게 커밋 수행을 지시
 
-### 실행 흐름
-```
-Claude 작업 완료
-     ↓
-Claude Code 세션 종료
-     ↓
-`.codex/hooks/on-stop.sh` 실행 (자동)
-     ↓
-`.claude/hooks/auto-commit.sh` 실행
-     ↓
-Git 변경사항 감지 및 커밋
+## 실행 흐름
+
+```text
+세션 종료 시도
+  -> .claude/hooks/auto-commit.sh 실행
+  -> 안전한 변경사항 존재 시 exit 2 + 지시문 출력
+  -> 변경사항이 없거나 민감 파일만 있으면 exit 0
 ```
 
----
+## 민감 파일 제외 패턴
 
-## 🔧 auto-commit.sh 상세 설명
-
-### 기능
-
-✅ **자동 변경사항 감지**
-- Staged, Unstaged, Untracked 파일 자동 감지
-
-✅ **민감 파일 자동 필터링**
-- `.env`, `.env.local`, 인증서 파일 등 제외
-- `.gitignore`에 등록된 파일 자동 제외
-
-✅ **명확한 커밋 정보**
-- 파일 수 및 변경 타입 (추가/수정/삭제) 표시
-- 변경된 파일 목록 포함
-- 커밋 SHA 및 타임스탬프 기록
-
-✅ **안전한 커밋**
-- 확인 없이 자동 커밋 (세션 종료 시점)
-- 사용자의 pre-commit 훅 존중
-- 오류 시 안전하게 종료
-
-### 변경사항 분석
-
-런타임을 자동 감지하여 `Codex` 또는 `Claude` 이름으로 커밋 메타데이터를 기록합니다.
-
-```bash
-# 커밋 메시지 예시
-chore(auto): Codex changes (43 files)
-
-Operations:
-  • Added: 2
-  • Modified: 38
-  • Deleted: 3
-
-Changed files:
-  - src/components/Button.tsx
-  - src/styles/theme.css
-  - design/design-system.pen
-  ... and 40 more
-
-Branch: main
-Time: 2026-02-17 15:30:45
-
-Co-Authored-By: OpenAI Codex <noreply@openai.com>
-```
-
----
-
-## 🛡️ 민감 파일 제외 목록
-
-자동으로 커밋되지 않는 파일:
-- `.env`, `.env.local`, `.env.*.local`
+- `.env`
+- `.env.local`
+- `.env.*.local`
 - `credentials*`
 - `.secret*`
-- `*.pem`, `*.key`, `*.crt`
-- `node_modules`
+- `*.pem`
+- `*.key`
+- `*.crt`
+- `node_modules` 트리 전체
 
-**주의:** `.gitignore`에 등록된 파일은 자동으로 제외되며, 추가 필터링이 필요하면 `EXCLUDE_PATTERNS`을 수정하세요.
+## 우회(필요 시)
 
----
-
-## 📝 사용 시나리오
-
-### 1. 일반적인 개발 작업
-```
-Claude: 새로운 컴포넌트 작성 완료
-  → auto-commit.sh 실행
-  → src/components/NewComponent.tsx 등이 자동 커밋됨
-  → 다음 세션에서 깨끗한 상태에서 시작
-```
-
-### 2. 버그 수정
-```
-Claude: 버그 수정 및 테스트 통과 확인
-  → auto-commit.sh 실행
-  → 수정 사항이 자동 커밋됨
-  → commit 메시지에 "43 files" 표시
-```
-
-### 3. 토큰/설정 동기화
-```
-Claude: 디자인 토큰 동기화
-  → auto-commit.sh 실행
-  → design-system.pen, 토큰 파일 자동 커밋
-  → 민감 파일 (.env)은 제외됨
-```
-
----
-
-## 🔍 로그 출력 예시
-
-```
-[Auto-Commit] Claude 작업 종료 훅 실행...
-[Auto-Commit] 변경 사항 분석 중...
-⚠ 제외된 민감 파일:
-     .env.local
-[Auto-Commit] 커밋 중...
-✓ 자동 커밋 완료
-Committed files (43):
-  - src/components/Button.tsx
-  - src/styles/theme.css
-  - design/design-system.pen
-[Auto-Commit] Commit: 1a2b3c4
-✓ Claude 작업 종료 훅 완료
-```
-
----
-
-## ⚙️ 커스터마이징
-
-### 민감 파일 패턴 추가
-
-`auto-commit.sh`에서 `EXCLUDE_PATTERNS` 배열을 수정합니다:
+강제로 게이트를 건너뛰려면 다음 환경변수를 사용합니다.
 
 ```bash
-EXCLUDE_PATTERNS=(
-  '.env'
-  '.env.local'
-  '*.secret'        # 추가
-  'my-private-*'    # 추가
-  # ... 기본 패턴
-)
+AUTO_COMMIT_ALLOW_UNCOMMITTED_EXIT=1
 ```
 
-### 커밋 메시지 포맷 변경
-
-`COMMIT_MSG` 변수를 수정하면 커밋 메시지 형식을 변경할 수 있습니다:
+## 수동 테스트
 
 ```bash
-COMMIT_MSG="feat(auto): Changes from Claude
-
-Files changed: ${CHANGED_COUNT}
-..."
+bash .claude/hooks/auto-commit.sh
+echo $?
 ```
 
----
-
-## 🐛 문제 해결
-
-### "Permission denied" 오류
-
-```bash
-chmod +x .claude/hooks/auto-commit.sh
-```
-
-### 특정 파일이 계속 커밋됨
-
-1. `.gitignore`에 파일 경로 추가
-2. 또는 `EXCLUDE_PATTERNS`에 패턴 추가
-
-### 훅이 실행되지 않음
-
-1. `.codex/hooks/on-stop.sh`가 실행 가능한지 확인:
-   ```bash
-   chmod +x .codex/hooks/on-stop.sh
-   ```
-
-2. Claude Code 세션 종료 시 로그 확인
-
-3. 수동 테스트:
-   ```bash
-   bash .claude/hooks/auto-commit.sh
-   ```
-
----
-
-## 📚 관련 파일
-
-- `.codex/hooks/on-stop.sh` - Claude Code stop 이벤트 핸들러
-- `CLAUDE.md` (프로젝트 루트) - 프로젝트 규칙
-- `.gitignore` - Git 무시 파일 목록
-
----
-
-## 🔐 보안 고려사항
-
-### 민감 정보 보호
-
-1. **환경 변수 파일 보호:**
-   - `.env.local`, `.env.*.local` 자동 제외
-
-2. **인증서/키 보호:**
-   - `*.pem`, `*.key`, `*.crt` 자동 제외
-
-3. **실수 방지:**
-   - 새로운 민감 파일 발견 시 로그에 경고 표시
-   - `.gitignore`에 명시적으로 등록 권장
-
-### 감사 추적 (Audit Trail)
-
-모든 자동 커밋에 다음 정보 기록:
-- 변경된 파일 목록
-- 변경 타입 (추가/수정/삭제)
-- 실행 시간 및 브랜치
-- 모델 정보 (Claude Haiku 4.5 등)
-
----
-
-## 📞 지원
-
-이 훅 시스템과 관련된 문제나 개선 사항은:
-- `.claude/hooks/auto-commit.sh` 내용 검토
-- `.codex/hooks/on-stop.sh` 설정 확인
-- 프로젝트 CLAUDE.md 참고
+- `0`: 종료 허용
+- `2`: 커밋 필요(종료 차단)

@@ -5,7 +5,7 @@ import 'server-only';
 
 import { randomUUID } from 'node:crypto';
 import type { CreateOneLinkPayload, OneLinkRecord } from '@/lib/onelinkLinksSchema';
-import { getSqliteDatabase } from '@/lib/sqlite';
+import { ensureOneLinkLinkGroupColumns, getSqliteDatabase } from '@/lib/sqlite';
 
 interface OneLinkRow {
   brand_domain: string;
@@ -13,6 +13,8 @@ interface OneLinkRow {
   channel: string;
   created_at: string;
   creation_type: string;
+  group_id: string | null;
+  group_item_id: string | null;
   id: string;
   link_name: string;
   long_url: string;
@@ -38,6 +40,8 @@ function mapOneLinkRowToRecord(row: OneLinkRow): OneLinkRecord {
     channel: row.channel,
     createdAt: row.created_at,
     creationType: row.creation_type as OneLinkRecord['creationType'],
+    groupId: row.group_id || undefined,
+    groupItemId: row.group_item_id || undefined,
     id: row.id,
     linkName: row.link_name,
     longUrl: row.long_url,
@@ -52,6 +56,7 @@ function mapOneLinkRowToRecord(row: OneLinkRow): OneLinkRecord {
  */
 export function createOneLinkRecord(input: CreateOneLinkPayload): OneLinkRecord {
   const db = getSqliteDatabase();
+  ensureOneLinkLinkGroupColumns(db);
   const id = randomUUID();
   const createdAt = new Date().toISOString();
 
@@ -98,6 +103,7 @@ export function createOneLinkRecord(input: CreateOneLinkPayload): OneLinkRecord 
  */
 export function listOneLinkRecords(limit = 200): OneLinkRecord[] {
   const db = getSqliteDatabase();
+  ensureOneLinkLinkGroupColumns(db);
   const safeLimit = Math.max(1, Math.min(limit, 1000));
 
   const rows = db
@@ -114,6 +120,8 @@ export function listOneLinkRecords(limit = 200): OneLinkRecord[] {
           campaign_name,
           channel,
           creation_type,
+          group_id,
+          group_item_id,
           created_at
         FROM onelink_links
         ORDER BY datetime(created_at) DESC
@@ -130,6 +138,7 @@ export function listOneLinkRecords(limit = 200): OneLinkRecord[] {
  */
 export function getOneLinkRecordById(id: string): OneLinkRecord | null {
   const db = getSqliteDatabase();
+  ensureOneLinkLinkGroupColumns(db);
   const row = db
     .prepare(
       `
@@ -144,6 +153,8 @@ export function getOneLinkRecordById(id: string): OneLinkRecord | null {
           campaign_name,
           channel,
           creation_type,
+          group_id,
+          group_item_id,
           created_at
         FROM onelink_links
         WHERE id = ?

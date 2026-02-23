@@ -15,6 +15,9 @@ export const LINK_GROUP_WARNING_THRESHOLD = 200;
 const MAX_GLOBAL_PARAMS = 100;
 const MAX_GLOBAL_PARAM_KEY_LENGTH = 128;
 const MAX_GLOBAL_PARAM_VALUE_LENGTH = 1024;
+const MAX_SCOPED_PARAMS = 300;
+const MAX_SCOPE_PREFIXES_PER_RULE = 200;
+const MAX_SCOPE_PREFIX_LENGTH = 512;
 const MAX_NODE_VALUE_LENGTH = 100;
 
 const HIERARCHICAL_KEYS = new Set(['pid', 'c', 'af_adset', 'af_ad']);
@@ -117,6 +120,98 @@ function sanitizeGlobalParams(value: unknown): {
   };
 }
 
+export interface ScopedParamRule {
+  key: string;
+  scopePathPrefixes: string[];
+  value: string;
+}
+
+function sanitizeScopedParams(value: unknown): {
+  error?: string;
+  rules: ScopedParamRule[];
+  warnings: string[];
+} {
+  if (!Array.isArray(value)) {
+    return {
+      rules: [],
+      warnings: [],
+    };
+  }
+
+  const warnings: string[] = [];
+  const rules: ScopedParamRule[] = [];
+
+  value.forEach((rawRule, index) => {
+    if (!rawRule || typeof rawRule !== 'object' || Array.isArray(rawRule)) {
+      warnings.push(`Scoped parameter rule #${index + 1} was ignored because it is invalid.`);
+      return;
+    }
+
+    const candidate = rawRule as Record<string, unknown>;
+    const key = sanitizeOptionalString(candidate.key, MAX_GLOBAL_PARAM_KEY_LENGTH);
+    if (!key) {
+      warnings.push(`Scoped parameter rule #${index + 1} was ignored because key is missing.`);
+      return;
+    }
+
+    if (HIERARCHICAL_KEYS.has(key)) {
+      warnings.push(`Scoped parameter "${key}" was ignored because it is controlled by tree hierarchy.`);
+      return;
+    }
+
+    if (typeof candidate.value !== 'string') {
+      warnings.push(`Scoped parameter "${key}" was ignored because value is invalid.`);
+      return;
+    }
+    const normalizedValue = candidate.value.trim().slice(0, MAX_GLOBAL_PARAM_VALUE_LENGTH);
+    if (!normalizedValue) {
+      return;
+    }
+
+    if (!Array.isArray(candidate.scopePathPrefixes)) {
+      warnings.push(`Scoped parameter "${key}" was ignored because scopePathPrefixes is invalid.`);
+      return;
+    }
+
+    const scopePathPrefixes = Array.from(
+      new Set(
+        candidate.scopePathPrefixes
+          .filter((entry): entry is string => typeof entry === 'string')
+          .map((entry) => entry.trim().slice(0, MAX_SCOPE_PREFIX_LENGTH))
+          .filter(Boolean),
+      ),
+    ).slice(0, MAX_SCOPE_PREFIXES_PER_RULE);
+
+    if (scopePathPrefixes.length === 0) {
+      warnings.push(`Scoped parameter "${key}" was ignored because scopePathPrefixes is empty.`);
+      return;
+    }
+
+    rules.push({
+      key,
+      scopePathPrefixes,
+      value: normalizedValue,
+    });
+
+    if (rules.length > MAX_SCOPED_PARAMS) {
+      return;
+    }
+  });
+
+  if (rules.length > MAX_SCOPED_PARAMS) {
+    return {
+      error: `Too many scoped parameters. Maximum is ${MAX_SCOPED_PARAMS}.`,
+      rules: [],
+      warnings,
+    };
+  }
+
+  return {
+    rules,
+    warnings,
+  };
+}
+
 function sanitizeLevel(value: unknown): LinkGroupNodeLevel | null {
   if (typeof value !== 'string') {
     return null;
@@ -214,9 +309,16 @@ export interface CreateLinkGroupRequestPayload {
   globalParams: Record<string, string>;
   name: string;
   plannedCount: number;
+  scopedParams: ScopedParamRule[];
   templateId: string;
   treeConfig: LinkGroupTreeConfig;
   warnings: string[];
+}
+
+export type LinkGroupApplyMode = 'failed_only' | 'new_only' | 'all';
+
+export interface UpdateLinkGroupRequestPayload extends CreateLinkGroupRequestPayload {
+  applyMode: LinkGroupApplyMode;
 }
 
 export function sanitizeCreateLinkGroupRequestPayload(payload: unknown): {
@@ -254,6 +356,11 @@ export function sanitizeCreateLinkGroupRequestPayload(payload: unknown): {
   }
 
   warnings.push(...globalParamsSanitized.warnings);
+  const scopedParamsSanitized = sanitizeScopedParams(candidate.scopedParams);
+  if (scopedParamsSanitized.error) {
+    return { error: scopedParamsSanitized.error };
+  }
+  warnings.push(...scopedParamsSanitized.warnings);
 
   const rawTreeConfig = candidate.treeConfig ?? candidate.tree;
   if (!rawTreeConfig || typeof rawTreeConfig !== 'object' || Array.isArray(rawTreeConfig)) {
@@ -289,12 +396,48 @@ export function sanitizeCreateLinkGroupRequestPayload(payload: unknown): {
       globalParams: globalParamsSanitized.params,
       name,
       plannedCount,
+      scopedParams: scopedParamsSanitized.rules,
       templateId,
       treeConfig: {
         roots: rootsSanitized.value,
         version: 1,
       },
       warnings,
+    },
+  };
+}
+
+export function sanitizeApplyMode(value: unknown): LinkGroupApplyMode | null {
+  if (value === 'failed_only' || value === 'new_only' || value === 'all') {
+    return value;
+  }
+
+  return null;
+}
+
+export function sanitizeUpdateLinkGroupRequestPayload(payload: unknown): {
+  error?: string;
+  value?: UpdateLinkGroupRequestPayload;
+} {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { error: 'Invalid payload.' };
+  }
+
+  const candidate = payload as Record<string, unknown>;
+  const applyMode = sanitizeApplyMode(candidate.applyMode);
+  if (!applyMode) {
+    return { error: 'applyMode must be one of failed_only, new_only, or all.' };
+  }
+
+  const createSanitized = sanitizeCreateLinkGroupRequestPayload(payload);
+  if (!createSanitized.value) {
+    return { error: createSanitized.error ?? 'Invalid payload.' };
+  }
+
+  return {
+    value: {
+      ...createSanitized.value,
+      applyMode,
     },
   };
 }

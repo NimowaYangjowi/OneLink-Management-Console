@@ -11134,7 +11134,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#f7f9fa"
+          "value": "#f8fafc"
         },
         {
           "value": "#1a1d23",
@@ -11148,7 +11148,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#333333"
+          "value": "#0f172a"
         },
         {
           "value": "#e5e5e5",
@@ -11176,7 +11176,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#333333"
+          "value": "#0f172a"
         },
         {
           "value": "#e5e5e5",
@@ -11204,7 +11204,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#333333"
+          "value": "#0f172a"
         },
         {
           "value": "#e5e5e5",
@@ -11218,10 +11218,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ffc0cb"
+          "value": "#4f46e5"
         },
         {
-          "value": "#ff99cc",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11232,10 +11232,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#000000"
+          "value": "#ffffff"
         },
         {
-          "value": "#000000",
+          "value": "#ffffff",
           "theme": {
             "Mode": "Dark"
           }
@@ -11246,10 +11246,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#a2f4fd"
+          "value": "#f1f5f9"
         },
         {
-          "value": "#33cc33",
+          "value": "#444444",
           "theme": {
             "Mode": "Dark"
           }
@@ -11260,10 +11260,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#000000"
+          "value": "#0f172a"
         },
         {
-          "value": "#000000",
+          "value": "#e5e5e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11274,7 +11274,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#ddd9c4"
+          "value": "#f1f5f9"
         },
         {
           "value": "#444444",
@@ -11288,7 +11288,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#6e6e6e"
+          "value": "#64748b"
         },
         {
           "value": "#a3a3a3",
@@ -11302,10 +11302,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ffff00"
+          "value": "#eef2ff"
         },
         {
-          "value": "#87ceeb",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11316,10 +11316,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#000000"
+          "value": "#4f46e5"
         },
         {
-          "value": "#000000",
+          "value": "#ffffff",
           "theme": {
             "Mode": "Dark"
           }
@@ -11358,7 +11358,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#d4d4d4"
+          "value": "#e2e8f0"
         },
         {
           "value": "#444444",
@@ -11372,7 +11372,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#d4d4d4"
+          "value": "#e2e8f0"
         },
         {
           "value": "#444444",
@@ -11386,10 +11386,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ffc0cb"
+          "value": "#4f46e5"
         },
         {
-          "value": "#ff99cc",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11400,10 +11400,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ffc0cb"
+          "value": "#4f46e5"
         },
         {
-          "value": "#ff99cc",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11414,10 +11414,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#87ceeb"
+          "value": "#4f46e5"
         },
         {
-          "value": "#33cc33",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11428,10 +11428,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ffff00"
+          "value": "#4f46e5"
         },
         {
-          "value": "#87ceeb",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11442,10 +11442,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ff99cc"
+          "value": "#4f46e5"
         },
         {
-          "value": "#ffff00",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11456,10 +11456,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#33cc33"
+          "value": "#4f46e5"
         },
         {
-          "value": "#ffcc00",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11470,7 +11470,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#f7f9fa"
+          "value": "#ffffff"
         },
         {
           "value": "#1a1d23",
@@ -11484,7 +11484,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#333333"
+          "value": "#0f172a"
         },
         {
           "value": "#e5e5e5",
@@ -11498,10 +11498,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ffc0cb"
+          "value": "#4f46e5"
         },
         {
-          "value": "#ff99cc",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11512,10 +11512,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#000000"
+          "value": "#ffffff"
         },
         {
-          "value": "#000000",
+          "value": "#ffffff",
           "theme": {
             "Mode": "Dark"
           }
@@ -11526,10 +11526,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ffff00"
+          "value": "#f1f5f9"
         },
         {
-          "value": "#87ceeb",
+          "value": "#2f3436",
           "theme": {
             "Mode": "Dark"
           }
@@ -11540,10 +11540,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#000000"
+          "value": "#0f172a"
         },
         {
-          "value": "#000000",
+          "value": "#e5e5e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11554,7 +11554,7 @@
       "type": "color",
       "value": [
         {
-          "value": "#d4d4d4"
+          "value": "#e2e8f0"
         },
         {
           "value": "#444444",
@@ -11568,10 +11568,10 @@
       "type": "color",
       "value": [
         {
-          "value": "#ffc0cb"
+          "value": "#4f46e5"
         },
         {
-          "value": "#ff99cc",
+          "value": "#4f46e5",
           "theme": {
             "Mode": "Dark"
           }
@@ -11580,15 +11580,15 @@
     },
     "--font-sans": {
       "type": "string",
-      "value": "Poppins, sans-serif"
+      "value": "var(--font-inter), \"Helvetica Neue\", Arial, sans-serif"
     },
     "--font-serif": {
       "type": "string",
-      "value": "Aref Ruqaa, ui-serif, serif"
+      "value": "var(--font-inter), \"Helvetica Neue\", Arial, sans-serif"
     },
     "--font-mono": {
       "type": "string",
-      "value": "Roboto Mono, monospace"
+      "value": "var(--font-inter), \"Helvetica Neue\", Arial, sans-serif"
     },
     "--radius": {
       "type": "string",

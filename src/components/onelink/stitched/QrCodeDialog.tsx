@@ -37,7 +37,7 @@ function QrCodeDialog({
             sx={ {
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 0.5,
+              borderRadius: 0.75,
               height: { sm: 360, xs: 280 },
               objectFit: 'contain',
               width: { sm: 360, xs: 280 },

@@ -31,6 +31,8 @@ export interface CreateOneLinkPayload {
 
 export interface OneLinkRecord extends CreateOneLinkPayload {
   createdAt: string;
+  groupId?: string;
+  groupItemId?: string;
   id: string;
 }
 
@@ -277,6 +279,8 @@ function sanitizeOneLinkRecord(value: unknown): OneLinkRecord | null {
     channel: sanitizeOptionalString(candidate.channel, 255),
     createdAt,
     creationType,
+    groupId: sanitizeOptionalString(candidate.groupId, 128) || undefined,
+    groupItemId: sanitizeOptionalString(candidate.groupItemId, 128) || undefined,
     id,
     linkName,
     longUrl,

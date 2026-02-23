@@ -39,6 +39,20 @@ These values must come from generated output, not manually maintained constants:
 | `--input` | `#e2e8f0` |
 | `--ring` | `#4f46e5` |
 
+## Point Color Rule
+
+- Keep one point hue for brand emphasis: `#4f46e5`.
+- `--primary`, `--ring`, and chart tokens (`--chart-1` ... `--chart-5`) must stay in this purple family.
+- Do not introduce additional brand accent hues in component code.
+
+## Typography Tokens
+
+| Token | Value |
+| --- | --- |
+| `--font-sans` | `var(--font-inter), "Helvetica Neue", Arial, sans-serif` |
+| `--font-serif` | `var(--font-inter), "Helvetica Neue", Arial, sans-serif` |
+| `--font-mono` | `var(--font-inter), "Helvetica Neue", Arial, sans-serif` |
+
 ## MUI Mapping
 
 | Token | MUI path |

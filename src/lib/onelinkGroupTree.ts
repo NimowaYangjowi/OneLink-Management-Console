@@ -4,7 +4,7 @@
 
 import type { LinkGroupLeafPath, LinkGroupNodeLevel, LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
 
-const TOKEN_SPLIT_REGEX = /[,;\n\r]+/;
+const TOKEN_SPLIT_REGEX = /[,;\n\r\t]+/;
 const RANGE_REGEX = /^(\d+)-(\d+)$/;
 
 const TREE_CHILD_LEVEL: Record<LinkGroupNodeLevel, LinkGroupNodeLevel | null> = {

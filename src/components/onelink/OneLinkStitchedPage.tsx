@@ -487,7 +487,7 @@ function OneLinkStitchedPage({
             sx={ {
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 0.75,
+              borderRadius: 1,
               p: 3,
             } }
           >

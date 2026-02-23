@@ -85,7 +85,7 @@ $ pnpm commit
 
 ## 🤖 Codex Integration
 
-This project also supports Codex using the same auto-commit hook logic.
+This project supports Codex with the same stop-hook commit gate used by Claude.
 
 ### Commands
 
@@ -93,7 +93,7 @@ This project also supports Codex using the same auto-commit hook logic.
 # Run the stop-hook manually (quick validation)
 pnpm codex:stop-hook
 
-# Run Codex CLI with automatic stop-hook bridge on exit
+# Run Codex CLI with stop-hook bridge on exit
 pnpm codex:bridge-cli -- <codex args>
 ```
 
@@ -103,10 +103,9 @@ pnpm codex:bridge-cli -- <codex args>
 Codex session end
   -> .codex/hooks/on-stop.sh
   -> .claude/hooks/auto-commit.sh
-  -> safe file filtering + auto commit
+  -> safe file filtering + commit-required gate (no auto commit)
 ```
-
-`auto-commit.sh` now detects runtime automatically and writes commit metadata as `Codex` or `Claude`.
+`auto-commit.sh` now blocks session stop when safe changes remain, and prints instructions to commit inside the model session.
 
 ---
 

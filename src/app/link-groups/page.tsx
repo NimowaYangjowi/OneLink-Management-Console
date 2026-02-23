@@ -1,8 +1,8 @@
 /**
- * Link Group management route for listing created groups.
+ * Legacy Link Group list route that now forwards to the unified /links page.
  */
-import OneLinkGroupListPage from '@/components/onelink/OneLinkGroupListPage';
+import { redirect } from 'next/navigation';
 
 export default function LinkGroupsPage() {
-  return <OneLinkGroupListPage />;
+  redirect('/links?type=link_group');
 }

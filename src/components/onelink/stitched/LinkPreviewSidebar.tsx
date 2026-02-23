@@ -81,7 +81,9 @@ function LinkPreviewSidebar({
           elevation={ 0 }
           sx={ {
             backgroundColor: 'background.paper',
-            borderRadius: 0.75,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
             overflow: 'hidden',
           } }
         >
@@ -114,9 +116,9 @@ function LinkPreviewSidebar({
                   backgroundColor: 'background.default',
                   border: '1px solid',
                   borderColor: 'divider',
-                  borderRadius: 0.5,
+                  borderRadius: 0.75,
                   color: 'text.primary',
-                  fontFamily: 'Roboto Mono, monospace',
+                  fontFamily: 'var(--font-sans)',
                   fontSize: 12,
                   lineHeight: 1.5,
                   overflowWrap: 'anywhere',
@@ -179,11 +181,9 @@ function LinkPreviewSidebar({
                 '&:hover': { backgroundColor: 'background.default' },
                 backgroundColor: 'background.paper',
                 borderColor: 'divider',
-                borderRadius: 0.5,
+                borderRadius: 0.75,
                 color: 'text.primary',
-                fontSize: 15,
-                fontWeight: 500,
-                py: 1.25,
+                py: 1,
                 textTransform: 'none',
               } }
               variant='outlined'
@@ -197,11 +197,9 @@ function LinkPreviewSidebar({
               sx={ {
                 '&:hover': { backgroundColor: 'background.default' },
                 borderColor: 'divider',
-                borderRadius: 0.5,
+                borderRadius: 0.75,
                 color: 'text.primary',
-                fontSize: 14,
-                fontWeight: 500,
-                py: 1.1,
+                py: 1,
                 textTransform: 'none',
               } }
               variant='outlined'
@@ -215,10 +213,9 @@ function LinkPreviewSidebar({
           disabled={ isInitialLoadPending || isCreating }
           onClick={ onCreateLink }
           sx={ {
-            borderRadius: 0.5,
-            fontSize: 14,
+            borderRadius: 0.75,
             fontWeight: 600,
-            py: 1.2,
+            py: 1,
             textTransform: 'none',
             width: '100%',
           } }

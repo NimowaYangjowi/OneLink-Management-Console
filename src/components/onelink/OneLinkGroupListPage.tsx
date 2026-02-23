@@ -246,9 +246,19 @@ function OneLinkGroupListPage() {
                           onClick={ () => handleDelete(group, 'local_only') }
                           size='small'
                           sx={ { textTransform: 'none' } }
-                          variant='text'
+                          variant='outlined'
                         >
                           Delete Local
+                        </Button>
+                        <Button
+                          color='error'
+                          disabled={ Boolean(activeGroupId) }
+                          onClick={ () => handleDelete(group, 'local_and_remote') }
+                          size='small'
+                          sx={ { textTransform: 'none' } }
+                          variant='text'
+                        >
+                          Delete Local+Remote
                         </Button>
                       </Stack>
                     </TableCell>

@@ -19,8 +19,10 @@ import {
   Typography,
 } from '@mui/material';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
+import { computeLeafCount } from '@/lib/onelinkGroupTree';
+import type { LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
 
 type LinkGroupItemRecord = {
   errorMessage: string;
@@ -45,6 +47,7 @@ type LinkGroupDetail = {
   templateId: string;
   totalItems: number;
   totalPages: number;
+  treeConfigJson: string;
 };
 
 type RetryResponse = {
@@ -92,6 +95,38 @@ function getItemStatusChipColor(status: LinkGroupItemRecord['status']): 'default
     return 'warning';
   }
   return 'default';
+}
+
+function computeTreeMaxDepth(nodes: LinkGroupTreeNode[]): number {
+  let maxDepth = 0;
+
+  const visit = (node: LinkGroupTreeNode, depth: number) => {
+    maxDepth = Math.max(maxDepth, depth);
+    node.children.forEach((child) => {
+      visit(child, depth + 1);
+    });
+  };
+
+  nodes.forEach((node) => {
+    visit(node, 1);
+  });
+
+  return maxDepth;
+}
+
+function renderTree(nodes: LinkGroupTreeNode[], depth = 0): ReactNode {
+  if (nodes.length === 0) {
+    return null;
+  }
+
+  return nodes.map((node, index) => (
+    <Box key={ `${node.level}-${node.value}-${depth}-${index}` } sx={ { ml: depth * 1.75, py: 0.25 } }>
+      <Typography sx={ { color: 'text.primary', fontSize: 13, fontWeight: node.level === 'media_source' ? 600 : 500 } }>
+        {node.value}
+      </Typography>
+      {renderTree(node.children, depth + 1)}
+    </Box>
+  ));
 }
 
 /**
@@ -162,6 +197,26 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
     [detail, isActing],
   );
 
+  const parsedTree = useMemo(() => {
+    if (!detail?.treeConfigJson) {
+      return { parseError: false, roots: [] as LinkGroupTreeNode[] };
+    }
+
+    try {
+      const parsed = JSON.parse(detail.treeConfigJson) as { roots?: LinkGroupTreeNode[] } | null;
+      if (!parsed || !Array.isArray(parsed.roots)) {
+        return { parseError: true, roots: [] as LinkGroupTreeNode[] };
+      }
+
+      return { parseError: false, roots: parsed.roots };
+    } catch {
+      return { parseError: true, roots: [] as LinkGroupTreeNode[] };
+    }
+  }, [detail?.treeConfigJson]);
+
+  const treeLeafCount = useMemo(() => computeLeafCount(parsedTree.roots), [parsedTree.roots]);
+  const treeMaxDepth = useMemo(() => computeTreeMaxDepth(parsedTree.roots), [parsedTree.roots]);
+
   const handleRetryFailed = async () => {
     if (!detail || !canRetry) {
       return;
@@ -226,7 +281,7 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
       }
 
       setTimeout(() => {
-        window.location.href = '/link-groups';
+        window.location.href = '/links?type=link_group';
       }, 450);
     } catch {
       setActionMessage('Failed to delete link group.');
@@ -238,7 +293,7 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
   return (
     <ConsoleLayout
       actions={ (
-        <Button component={ Link } href='/link-groups' sx={ { textTransform: 'none' } } variant='outlined'>
+        <Button component={ Link } href='/links?type=link_group' sx={ { textTransform: 'none' } } variant='outlined'>
           Back to Groups
         </Button>
       ) }
@@ -288,6 +343,15 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
 
               <Stack direction={ { md: 'row', xs: 'column' } } spacing={ 1 } sx={ { mt: 1.75 } }>
                 <Button
+                  component={ Link }
+                  href={ `/create/link-group/${encodeURIComponent(detail.id)}` }
+                  disabled={ isActing }
+                  sx={ { textTransform: 'none' } }
+                  variant='outlined'
+                >
+                  Edit Group
+                </Button>
+                <Button
                   disabled={ !canRetry }
                   onClick={ handleRetryFailed }
                   sx={ { textTransform: 'none' } }
@@ -313,6 +377,46 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
                 >
                   Delete Local + Remote
                 </Button>
+              </Stack>
+            </Paper>
+          )}
+
+          {detail && (
+            <Paper
+              elevation={ 0 }
+              sx={ {
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                p: 2,
+              } }
+            >
+              <Stack spacing={ 1 }>
+                <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
+                  Tree Visualization
+                </Typography>
+                <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                  {`Leaf paths: ${treeLeafCount} · Max depth: ${treeMaxDepth}`}
+                </Typography>
+                {parsedTree.parseError && (
+                  <Alert severity='warning'>Failed to parse stored tree configuration.</Alert>
+                )}
+                <Box
+                  sx={ {
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    maxHeight: 280,
+                    overflowY: 'auto',
+                    p: 1.5,
+                  } }
+                >
+                  {parsedTree.roots.length > 0 ? (
+                    renderTree(parsedTree.roots)
+                  ) : (
+                    <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>No tree configuration found.</Typography>
+                  )}
+                </Box>
               </Stack>
             </Paper>
           )}

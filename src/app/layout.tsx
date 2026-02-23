@@ -1,17 +1,17 @@
 /**
  * Root layout for the OneLink Management Console.
- * Configures fonts (Fraunces serif + Pretendard sans-serif),
+ * Configures global Inter font,
  * wraps the app in MUI ThemeProvider, and sets global metadata.
  */
 import type { Metadata } from 'next';
-import { Fraunces } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import ThemeProvider from '@/lib/providers/ThemeProvider';
 import './globals.css';
 
-const fraunces = Fraunces({
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-fraunces',
+  variable: '--font-inter',
   weight: ['300', '400', '500', '600', '700'],
 });
 
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={ fraunces.variable } suppressHydrationWarning>
+    <html lang="en" className={ inter.variable } suppressHydrationWarning>
       <body suppressHydrationWarning>
         <ThemeProvider>
           { children }

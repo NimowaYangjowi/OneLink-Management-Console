@@ -16,16 +16,22 @@ The page implementation should follow `.pen`, and when style direction changes i
 Commands:
 
 ```bash
-pnpm tokens:apply-stitch-theme
 pnpm tokens:sync
+```
+
+- `tokens:sync`
+  - Script: `scripts/sync-pen-tokens.mjs`
+  - Purpose: generate runtime/doc token artifacts directly from `.pen` (authoritative source).
+
+Optional maintenance command:
+
+```bash
+pnpm tokens:apply-stitch-theme
 ```
 
 - `tokens:apply-stitch-theme`
   - Script: `scripts/apply-onelink-stitch-theme-to-pen.mjs`
-  - Purpose: back-port current stitched page Light-mode palette to `.pen` variables.
-- `tokens:sync`
-  - Script: `scripts/sync-pen-tokens.mjs`
-  - Purpose: generate runtime/doc token artifacts directly from `.pen`.
+  - Purpose: apply the canonical Light token baseline to `.pen` when drift is detected.
 
 ## Generated Artifacts
 
@@ -41,5 +47,5 @@ pnpm tokens:sync
 1. Do not manually edit generated token artifacts.
 2. After any `.pen` token change, run `pnpm tokens:sync`.
 3. Before updating docs/skills that reference token values, ensure generated artifacts are refreshed.
-4. In page/component code, use `theme.palette` or `pencilTokens`; avoid hardcoded hex values.
+4. In page/component code, use `theme.palette`, typography tokens, or `pencilTokens`; avoid hardcoded hex values.
 5. Use HugeIcons by default (`src/components/shared/HugeIcon.tsx`) and Lucide only as fallback.

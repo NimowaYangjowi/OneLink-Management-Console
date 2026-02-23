@@ -6,6 +6,7 @@
 import { Box, Button, Chip, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
+import { filledFieldSx } from '@/components/onelink/stitched/fieldStyles';
 import {
   PRESET_FIELDS,
   PRESET_FIELDS_BY_SECTION,
@@ -17,24 +18,22 @@ import {
   useSettings,
 } from '@/lib/providers/SettingsContext';
 
-const fieldSx = {
-  '& .MuiOutlinedInput-root': {
-    '& .MuiOutlinedInput-input': {
-      fontSize: 14,
-      py: 2,
-    },
-    '& fieldset': {
-      borderColor: 'divider',
-    },
-    '&:hover fieldset': {
-      borderColor: 'divider',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: 'primary.main',
-      borderWidth: 1,
-    },
-    backgroundColor: 'background.default',
-    borderRadius: 0.5,
+const compactButtonSx = {
+  minWidth: 0,
+  px: 2,
+  whiteSpace: 'nowrap',
+};
+
+const compactTextButtonSx = {
+  minWidth: 0,
+  px: 2,
+};
+
+const neutralTextButtonSx = {
+  color: 'text.secondary',
+  '&:hover': {
+    backgroundColor: 'action.hover',
+    color: 'text.primary',
   },
 };
 
@@ -139,7 +138,7 @@ function OneLinkSettingsPage() {
       >
         <Box sx={ { flex: 1, minWidth: 0 } }>
           <Stack spacing={ 3 }>
-            <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 0.75, p: 3 } }>
+            <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 3 } }>
               <Stack spacing={ 2 }>
                 <Box>
                   <Typography sx={ { fontSize: 22, fontWeight: 600 } }>Template IDs</Typography>
@@ -148,7 +147,11 @@ function OneLinkSettingsPage() {
                   </Typography>
                 </Box>
 
-                <Stack direction={ { sm: 'row', xs: 'column' } } spacing={ 1.5 }>
+                <Stack
+                  alignItems={ { sm: 'flex-start', xs: 'stretch' } }
+                  direction={ { sm: 'row', xs: 'column' } }
+                  spacing={ 1.5 }
+                >
                   <TextField
                     disabled={ isAddingTemplate }
                     error={ Boolean(templateError) }
@@ -157,7 +160,7 @@ function OneLinkSettingsPage() {
                       templateError
                       || (isAddingTemplate
                         ? 'Resolving subdomain from AppsFlyer (up to 4 attempts)...'
-                        : 'Exactly 4 alphanumeric characters (case-sensitive).')
+                        : '4 alphanumeric characters (case-sensitive).')
                     }
                     onChange={ (event) => {
                       setTemplateInput(event.target.value);
@@ -170,15 +173,16 @@ function OneLinkSettingsPage() {
                       }
                     } }
                     placeholder='e.g. A1b2'
-                    sx={ fieldSx }
+                    sx={ filledFieldSx }
                     value={ templateInput }
                   />
                   <Button
+                    color='secondary'
                     disabled={ isAddingTemplate }
                     onClick={ () => {
                       void handleTemplateAdd();
                     } }
-                    sx={ { minWidth: { sm: 120 }, px: 2.5, textTransform: 'none' } }
+                    sx={ compactButtonSx }
                     variant='contained'
                   >
                     {isAddingTemplate ? 'Resolving...' : 'Add'}
@@ -195,7 +199,7 @@ function OneLinkSettingsPage() {
                           backgroundColor: 'background.default',
                           border: '1px solid',
                           borderColor: 'divider',
-                          borderRadius: 0.75,
+                          borderRadius: 1,
                           p: 2,
                         } }
                       >
@@ -215,16 +219,19 @@ function OneLinkSettingsPage() {
                               </Typography>
                             </Box>
                             <Button
-                              color='error'
                               onClick={ () => removeTemplateId(id) }
-                              sx={ { textTransform: 'none' } }
+                              sx={ { ...compactTextButtonSx, ...neutralTextButtonSx } }
                               variant='text'
                             >
                               Remove Template
                             </Button>
                           </Stack>
 
-                          <Stack direction={ { sm: 'row', xs: 'column' } } spacing={ 1.5 }>
+                          <Stack
+                            alignItems={ { sm: 'flex-start', xs: 'stretch' } }
+                            direction={ { sm: 'row', xs: 'column' } }
+                            spacing={ 1.5 }
+                          >
                             <TextField
                               error={ Boolean(templateDomainErrors[id]) }
                               fullWidth
@@ -247,12 +254,13 @@ function OneLinkSettingsPage() {
                                 }
                               } }
                               placeholder='e.g. click.example.com'
-                              sx={ fieldSx }
+                              sx={ filledFieldSx }
                               value={ templateDomainInputs[id] ?? '' }
                             />
                             <Button
+                              color='secondary'
                               onClick={ () => handleTemplateDomainAdd(id) }
-                              sx={ { minWidth: { sm: 140 }, px: 2.5, textTransform: 'none' } }
+                              sx={ compactButtonSx }
                               variant='contained'
                             >
                               Add Domain
@@ -271,16 +279,19 @@ function OneLinkSettingsPage() {
                                     backgroundColor: 'background.paper',
                                     border: '1px solid',
                                     borderColor: 'divider',
-                                    borderRadius: 0.5,
+                                    borderRadius: 0.75,
                                     px: 1.5,
                                     py: 1,
                                   } }
                                 >
                                   <Typography sx={ { fontSize: 14 } }>{domain}</Typography>
                                   <Button
-                                    color='error'
                                     onClick={ () => removeTemplateBrandedDomain(id, domain) }
-                                    sx={ { minWidth: 'auto', px: 1, textTransform: 'none' } }
+                                    sx={ {
+                                      ...compactTextButtonSx,
+                                      ...neutralTextButtonSx,
+                                      minWidth: 'auto',
+                                    } }
                                     variant='text'
                                   >
                                     Remove
@@ -303,7 +314,7 @@ function OneLinkSettingsPage() {
               </Stack>
             </Paper>
 
-            <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 0.75, p: 3 } }>
+            <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 3 } }>
               <Stack spacing={ 3 }>
                 <Box>
                   <Typography sx={ { fontSize: 22, fontWeight: 600 } }>Create Presets</Typography>
@@ -324,7 +335,7 @@ function OneLinkSettingsPage() {
                             backgroundColor: 'background.default',
                             border: '1px solid',
                             borderColor: 'divider',
-                            borderRadius: 0.75,
+                            borderRadius: 1,
                             p: 2,
                           } }
                         >
@@ -333,11 +344,15 @@ function OneLinkSettingsPage() {
                               {PRESET_FIELD_LABELS[field]} ({settings.presets[field].length})
                             </Typography>
 
-                            <Stack direction={ { sm: 'row', xs: 'column' } } spacing={ 1.5 }>
+                            <Stack
+                              alignItems={ { sm: 'flex-start', xs: 'stretch' } }
+                              direction={ { sm: 'row', xs: 'column' } }
+                              spacing={ 1.5 }
+                            >
                               <TextField
                                 error={ Boolean(presetErrors[field]) }
                                 fullWidth
-                                helperText={ presetErrors[field] || 'Press Enter to add quickly.' }
+                                helperText={ presetErrors[field] || undefined }
                                 onChange={ (event) => {
                                   setPresetInputs((previous) => ({
                                     ...previous,
@@ -355,34 +370,31 @@ function OneLinkSettingsPage() {
                                   }
                                 } }
                                 placeholder={ PRESET_FIELD_PLACEHOLDERS[field] }
-                                sx={ fieldSx }
+                                sx={ filledFieldSx }
                                 value={ presetInputs[field] }
                               />
                               <Button
+                                color='secondary'
                                 onClick={ () => handlePresetAdd(field) }
-                                sx={ { minWidth: { sm: 120 }, px: 2.5, textTransform: 'none' } }
+                                sx={ compactButtonSx }
                                 variant='contained'
                               >
                                 Add
                               </Button>
                             </Stack>
 
-                            <Stack direction='row' flexWrap='wrap' gap={ 1 }>
-                              {settings.presets[field].length > 0 ? (
-                                settings.presets[field].map((value) => (
+                            {settings.presets[field].length > 0 ? (
+                              <Stack direction='row' flexWrap='wrap' gap={ 1 }>
+                                {settings.presets[field].map((value) => (
                                   <Chip
                                     key={ `${field}-${value}` }
                                     label={ value }
                                     onDelete={ () => removePreset(field, value) }
                                     variant='outlined'
                                   />
-                                ))
-                              ) : (
-                                <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>
-                                  No presets for this field yet.
-                                </Typography>
-                              )}
-                            </Stack>
+                                ))}
+                              </Stack>
+                            ) : null}
                           </Stack>
                         </Paper>
                       ))}

@@ -96,7 +96,7 @@ function DeepLinkingSection({
             backgroundColor: 'background.default',
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 0.5,
+            borderRadius: 1,
             p: 2,
           } }
         >
@@ -130,7 +130,7 @@ function DeepLinkingSection({
             backgroundColor: 'background.default',
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 0.5,
+            borderRadius: 1,
             p: 2,
           } }
         >

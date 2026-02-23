@@ -4,20 +4,7 @@
 
 export const filledFieldSx = {
   '& .MuiOutlinedInput-root': {
-    '& .MuiOutlinedInput-input': {
-      fontSize: 14,
-      py: 2,
-    },
-    '& fieldset': {
-      borderColor: 'divider',
-    },
-    '&:hover fieldset': {
-      borderColor: 'divider',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: 'primary.main',
-      borderWidth: 1,
-    },
+    backgroundColor: 'background.default',
     '&.Mui-error fieldset': {
       borderColor: 'error.main',
     },
@@ -28,8 +15,6 @@ export const filledFieldSx = {
       borderColor: 'error.main',
       borderWidth: 1,
     },
-    backgroundColor: 'background.default',
-    borderRadius: 0.5,
   },
 };
 

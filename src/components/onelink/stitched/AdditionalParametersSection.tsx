@@ -98,7 +98,7 @@ function AdditionalParametersSection({
               onClick={ () => onParameterDelete(param.id) }
               sx={ {
                 '&:hover': { backgroundColor: 'action.hover' },
-                borderRadius: 0.5,
+                borderRadius: 0.75,
                 color: 'error.main',
                 flexShrink: 0,
               } }
