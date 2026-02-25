@@ -49,6 +49,10 @@ export function buildSeeds(
       if (!pathMatchesScope(leafPath.pathLabel, rule.scopePathPrefixes)) {
         return;
       }
+      if (rule.isDisabled) {
+        delete payload[rule.key];
+        return;
+      }
       payload[rule.key] = rule.value;
     });
 

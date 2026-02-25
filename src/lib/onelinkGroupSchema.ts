@@ -3,7 +3,13 @@
  */
 
 import { computeLeafCount, getAllowedChildLevel } from '@/lib/onelinkGroupTree';
-import type { LinkGroupNodeLevel, LinkGroupTreeConfig, LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
+import { normalizeLinkGroupShortLinkIdConfig } from '@/lib/onelinkShortLinkId';
+import type {
+  LinkGroupNodeLevel,
+  LinkGroupShortLinkIdConfig,
+  LinkGroupTreeConfig,
+  LinkGroupTreeNode,
+} from '@/lib/onelinkGroupTypes';
 
 const TEMPLATE_ID_REGEX = /^[a-zA-Z0-9]{4}$/;
 const IPV4_HOSTNAME_REGEX =
@@ -121,6 +127,7 @@ function sanitizeGlobalParams(value: unknown): {
 }
 
 export interface ScopedParamRule {
+  isDisabled?: boolean;
   key: string;
   scopePathPrefixes: string[];
   value: string;
@@ -159,12 +166,13 @@ function sanitizeScopedParams(value: unknown): {
       return;
     }
 
+    const isDisabled = Boolean(candidate.isDisabled);
     if (typeof candidate.value !== 'string') {
       warnings.push(`Scoped parameter "${key}" was ignored because value is invalid.`);
       return;
     }
     const normalizedValue = candidate.value.trim().slice(0, MAX_GLOBAL_PARAM_VALUE_LENGTH);
-    if (!normalizedValue) {
+    if (!isDisabled && !normalizedValue) {
       return;
     }
 
@@ -188,6 +196,7 @@ function sanitizeScopedParams(value: unknown): {
     }
 
     rules.push({
+      isDisabled,
       key,
       scopePathPrefixes,
       value: normalizedValue,
@@ -310,6 +319,7 @@ export interface CreateLinkGroupRequestPayload {
   name: string;
   plannedCount: number;
   scopedParams: ScopedParamRule[];
+  shortLinkIdConfig: LinkGroupShortLinkIdConfig;
   templateId: string;
   treeConfig: LinkGroupTreeConfig;
   warnings: string[];
@@ -390,6 +400,8 @@ export function sanitizeCreateLinkGroupRequestPayload(payload: unknown): {
     warnings.push(`Large group warning: ${plannedCount} links exceed warning threshold (${LINK_GROUP_WARNING_THRESHOLD}).`);
   }
 
+  const shortLinkIdConfig = normalizeLinkGroupShortLinkIdConfig(candidate.shortLinkIdConfig);
+
   return {
     value: {
       brandDomain: brandDomain.value,
@@ -397,6 +409,7 @@ export function sanitizeCreateLinkGroupRequestPayload(payload: unknown): {
       name,
       plannedCount,
       scopedParams: scopedParamsSanitized.rules,
+      shortLinkIdConfig,
       templateId,
       treeConfig: {
         roots: rootsSanitized.value,

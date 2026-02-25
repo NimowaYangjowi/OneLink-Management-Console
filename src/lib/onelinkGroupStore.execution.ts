@@ -10,6 +10,11 @@ import {
   OneLinkCreateError,
   OneLinkDeleteError,
 } from '@/lib/onelinkApi';
+import {
+  createShortLinkIdAllocator,
+  resolveShortLinkIdBaseFromPayload,
+  type ShortLinkIdAllocator,
+} from '@/lib/onelinkShortLinkId';
 import { ensureOneLinkLinkGroupColumns, getSqliteDatabase } from '@/lib/sqlite';
 import { EXECUTION_CONCURRENCY, type ClaimedPendingItem, type GroupExecutionConfig } from '@/lib/onelinkGroupStore.types';
 import {
@@ -154,7 +159,35 @@ function resetProcessingItemsToPending(groupId: string): void {
   ).run(new Date().toISOString(), groupId);
 }
 
-async function executeSingleItem(config: GroupExecutionConfig, item: ClaimedPendingItem): Promise<void> {
+function getReservedShortLinkIdsForGroup(groupId: string, templateId: string): string[] {
+  const db = getSqliteDatabase();
+  const rows = db
+    .prepare(
+      `
+        SELECT short_link
+        FROM onelink_link_group_items
+        WHERE group_id = ?
+          AND short_link != ''
+      `,
+    )
+    .all(groupId) as Array<{ short_link: string }>;
+
+  const reservedIds = new Set<string>();
+  rows.forEach((row) => {
+    const extracted = extractShortLinkIdFromUrl(row.short_link, templateId);
+    if (extracted) {
+      reservedIds.add(extracted);
+    }
+  });
+
+  return [...reservedIds];
+}
+
+async function executeSingleItem(
+  config: GroupExecutionConfig,
+  item: ClaimedPendingItem,
+  shortLinkIdAllocator: ShortLinkIdAllocator,
+): Promise<void> {
   let parsedPayload: Record<string, string>;
 
   try {
@@ -181,9 +214,12 @@ async function executeSingleItem(config: GroupExecutionConfig, item: ClaimedPend
   }
 
   try {
+    const shortLinkIdBase = resolveShortLinkIdBaseFromPayload(parsedPayload, config.shortLinkIdConfig);
+    const shortLinkId = shortLinkIdBase ? shortLinkIdAllocator.allocate(shortLinkIdBase) : undefined;
     const shortLink = await createOneLinkShortlink({
       brandDomain: config.brandDomain,
       data: parsedPayload,
+      shortLinkId,
       templateId: config.templateId,
     });
 
@@ -201,12 +237,23 @@ async function executeSingleItem(config: GroupExecutionConfig, item: ClaimedPend
 
 async function runGroupExecution(groupId: string): Promise<void> {
   resetProcessingItemsToPending(groupId);
+  let shortLinkIdAllocator: ShortLinkIdAllocator | null = null;
+  let allocatorTemplateId = '';
 
   while (true) {
     const config = getGroupExecutionConfig(groupId);
     if (!config) {
       break;
     }
+
+    if (!shortLinkIdAllocator || allocatorTemplateId !== config.templateId) {
+      shortLinkIdAllocator = createShortLinkIdAllocator(getReservedShortLinkIdsForGroup(groupId, config.templateId));
+      allocatorTemplateId = config.templateId;
+    }
+    if (!shortLinkIdAllocator) {
+      break;
+    }
+    const allocator = shortLinkIdAllocator;
 
     const items = claimPendingItems(groupId, EXECUTION_CONCURRENCY);
     if (items.length === 0) {
@@ -215,7 +262,7 @@ async function runGroupExecution(groupId: string): Promise<void> {
 
     await Promise.allSettled(
       items.map(async (item) => {
-        await executeSingleItem(config, item);
+        await executeSingleItem(config, item, allocator);
       }),
     );
   }

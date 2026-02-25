@@ -22,6 +22,10 @@ export interface LinkGroupTreeConfig {
   version: 1;
 }
 
+export type LinkGroupShortLinkIdConfig =
+  | { mode: 'random' }
+  | { fieldKey: string; mode: 'field' };
+
 export interface LinkGroupLeafPath {
   af_ad?: string;
   af_adset?: string;

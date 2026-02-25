@@ -4,8 +4,13 @@
 
 import { createHash } from 'node:crypto';
 import type { ScopedParamRule } from '@/lib/onelinkGroupSchema';
+import { normalizeLinkGroupShortLinkIdConfig } from '@/lib/onelinkShortLinkId';
 import { getSqliteDatabase } from '@/lib/sqlite';
-import type { LinkGroupItemStatus, LinkGroupStatus } from '@/lib/onelinkGroupTypes';
+import type {
+  LinkGroupItemStatus,
+  LinkGroupShortLinkIdConfig,
+  LinkGroupStatus,
+} from '@/lib/onelinkGroupTypes';
 import type {
   ClaimedPendingItem,
   ExistingGroupItemSnapshot,
@@ -60,6 +65,7 @@ export function getGroupRowById(groupId: string): GroupRow | undefined {
           tree_config_json,
           global_params_json,
           scoped_params_json,
+          shortlink_id_config_json,
           planned_count,
           success_count,
           failed_count,
@@ -133,7 +139,8 @@ export function parseScopedParamsJson(value: string | undefined): ScopedParamRul
       const candidate = rawRule as Record<string, unknown>;
       const key = typeof candidate.key === 'string' ? candidate.key.trim() : '';
       const valueText = typeof candidate.value === 'string' ? candidate.value.trim() : '';
-      if (!key || !valueText || !Array.isArray(candidate.scopePathPrefixes)) {
+      const isDisabled = Boolean(candidate.isDisabled);
+      if (!key || (!valueText && !isDisabled) || !Array.isArray(candidate.scopePathPrefixes)) {
         return accumulator;
       }
 
@@ -151,6 +158,7 @@ export function parseScopedParamsJson(value: string | undefined): ScopedParamRul
       }
 
       accumulator.push({
+        isDisabled,
         key,
         scopePathPrefixes,
         value: valueText,
@@ -160,6 +168,19 @@ export function parseScopedParamsJson(value: string | undefined): ScopedParamRul
     }, []);
   } catch {
     return [];
+  }
+}
+
+export function parseShortLinkIdConfigJson(value: string | undefined): LinkGroupShortLinkIdConfig {
+  if (!value) {
+    return { mode: 'random' };
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return normalizeLinkGroupShortLinkIdConfig(parsed);
+  } catch {
+    return { mode: 'random' };
   }
 }
 
@@ -276,13 +297,20 @@ export function getGroupExecutionConfig(groupId: string): GroupExecutionConfig |
           id,
           name,
           template_id,
-          brand_domain
+          brand_domain,
+          shortlink_id_config_json
         FROM onelink_link_groups
         WHERE id = ?
         LIMIT 1
       `,
     )
-    .get(groupId) as { brand_domain: string; id: string; name: string; template_id: string } | undefined;
+    .get(groupId) as {
+      brand_domain: string;
+      id: string;
+      name: string;
+      shortlink_id_config_json?: string;
+      template_id: string;
+    } | undefined;
 
   if (!row) {
     return null;
@@ -292,6 +320,7 @@ export function getGroupExecutionConfig(groupId: string): GroupExecutionConfig |
     brandDomain: row.brand_domain,
     groupName: row.name,
     groupId: row.id,
+    shortLinkIdConfig: parseShortLinkIdConfigJson(row.shortlink_id_config_json),
     templateId: row.template_id,
   };
 }

@@ -5,6 +5,8 @@ import { MenuItem, Stack, TextField, Typography } from '@mui/material';
 
 type BaseSetupStepProps = {
   brandDomain: string;
+  groupNameError: boolean;
+  groupNameHelperText?: string;
   groupName: string;
   onBrandDomainChange: (value: string) => void;
   onGroupNameChange: (value: string) => void;
@@ -15,6 +17,8 @@ type BaseSetupStepProps = {
 
 function BaseSetupStep({
   brandDomain,
+  groupNameError,
+  groupNameHelperText,
   groupName,
   onBrandDomainChange,
   onGroupNameChange,
@@ -33,7 +37,9 @@ function BaseSetupStep({
         </Typography>
       </Stack>
       <TextField
+        error={ groupNameError }
         fullWidth
+        helperText={ groupNameHelperText }
         label='Link Group Name'
         onChange={ (event) => onGroupNameChange(event.target.value) }
         size='small'

@@ -22,6 +22,7 @@ type UseGroupSnippetPreviewArgs = {
   selectedTreeNodeSet: Set<string>;
   selectedTreeNodes: EditorTreeNode[];
   sortedScopedParams: Array<{
+    isDisabled?: boolean;
     key: string;
     scopePathPrefixes: string[];
     value: string;
@@ -88,6 +89,10 @@ export function useGroupSnippetPreview({
         };
         sortedScopedParams.forEach((rule) => {
           if (!doesPathMatchScope(pathLabel, rule.scopePathPrefixes)) {
+            return;
+          }
+          if (rule.isDisabled) {
+            delete payload[rule.key];
             return;
           }
           payload[rule.key] = rule.value;
@@ -214,6 +219,7 @@ export function useGroupSnippetPreview({
 
   return {
     activeSnippetContextLabel,
+    previewSnippets,
     filteredSnippets,
     focusedSnippetIndex: clampedFocusedSnippetIndex,
     handleSelectSnippet,

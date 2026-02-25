@@ -1,5 +1,5 @@
 /**
- * Right-side link preview panel with wheel focus interaction.
+ * Right-side panel for link preview and Step 1 guidance content.
  */
 import { Alert, Box, Divider, Paper, Stack, Typography } from '@mui/material';
 import { useEffect, type RefObject } from 'react';
@@ -39,7 +39,7 @@ function LinkPreviewPanel({
   snippetWheelRef,
 }: LinkPreviewPanelProps) {
   useEffect(() => {
-    if (activeStep === 3 || !snippetHighlightToken) {
+    if (activeStep === 0 || activeStep === 3 || !snippetHighlightToken) {
       return;
     }
 
@@ -73,6 +73,62 @@ function LinkPreviewPanel({
     const rafId = window.requestAnimationFrame(reposition);
     return () => window.cancelAnimationFrame(rafId);
   }, [activeSnippetNodeValue, activeStep, snippetHighlightToken, snippetWheelRef]);
+
+  if (activeStep === 0) {
+    return (
+      <Paper
+        elevation={ 0 }
+        sx={ {
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          flex: { md: '1 1 40%', xs: '1 1 auto' },
+          maxWidth: { md: '40%', xs: '100%' },
+          minWidth: 0,
+          minHeight: 520,
+          overflow: 'hidden',
+          p: 2,
+        } }
+      >
+        <Stack spacing={ 1.5 } sx={ { height: '100%' } }>
+          <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
+            Link Group Overview
+          </Typography>
+          <Typography sx={ { color: 'text.secondary', fontSize: 12, lineHeight: 1.55 } }>
+            Link Group is a unit that groups OneLinks created for the same purpose. Once you create a group, you can
+            manage link creation and operations with consistent standards.
+          </Typography>
+          <Divider />
+          <Box
+            component='ol'
+            sx={ {
+              color: 'text.secondary',
+              display: 'grid',
+              fontSize: 12,
+              gap: 1,
+              lineHeight: 1.5,
+              m: 0,
+              pl: 2.25,
+            } }
+          >
+            <Box component='li'>
+              Create and manage links faster using a shared group context.
+            </Box>
+            <Box component='li'>
+              Reuse common parameters and policies to reduce configuration mistakes.
+            </Box>
+            <Box component='li'>
+              Standardize ownership, expiration, and naming rules across link operations.
+            </Box>
+          </Box>
+          <Divider />
+          <Typography sx={ { color: 'text.secondary', fontSize: 12, lineHeight: 1.5 } }>
+            The group information entered in this step becomes the baseline for link defaults in the next steps.
+          </Typography>
+        </Stack>
+      </Paper>
+    );
+  }
 
   return (
     <Paper

@@ -1,7 +1,16 @@
 /**
  * Step 2 UI for root insertion and nested tree editing.
  */
-import { Alert, Autocomplete, Button, ClickAwayListener, Stack, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Autocomplete,
+  Button,
+  ClickAwayListener,
+  Stack,
+  TextField,
+  Typography,
+  type AutocompleteChangeReason,
+} from '@mui/material';
 import type { ClipboardEvent, KeyboardEvent } from 'react';
 import { useRef, useState } from 'react';
 import type { LinkGroupNodeLevel } from '@/lib/onelinkGroupTypes';
@@ -85,6 +94,25 @@ function TreeBuilderStep({
     return true;
   };
 
+  const handlePresetChange = (
+    nextValue: string | null,
+    reason: AutocompleteChangeReason,
+    skipSyncCountRef: { current: number },
+  ) => {
+    if (shouldSkipSync(skipSyncCountRef)) {
+      return;
+    }
+
+    if (reason === 'selectOption' && nextValue) {
+      skipSyncCountRef.current = 2;
+      addCurrentLevelValues(nextValue);
+      setIsPresetDropdownOpen(false);
+      return;
+    }
+
+    onInputDraftChange(nextValue ?? '');
+  };
+
   return (
     <Stack spacing={ 1.5 }>
       <Stack spacing={ 0.5 }>
@@ -107,16 +135,12 @@ function TreeBuilderStep({
           } }
         >
           <Autocomplete<string, false, false, true>
+            disablePortal
             freeSolo
             disabled={ isLeafSelection }
             fullWidth
             inputValue={ inputDraftValue }
-            onChange={ (_, nextValue) => {
-              if (shouldSkipSync(skipRootSyncCountRef)) {
-                return;
-              }
-              onInputDraftChange(nextValue ?? '');
-            } }
+            onChange={ (_, nextValue, reason) => handlePresetChange(nextValue, reason, skipRootSyncCountRef) }
             onClose={ () => setIsPresetDropdownOpen(false) }
             onInputChange={ (_, inputValue, reason) => {
               if (shouldSkipSync(skipRootSyncCountRef)) {

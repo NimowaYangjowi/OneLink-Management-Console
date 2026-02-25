@@ -3,7 +3,11 @@
  */
 
 import type { LinkGroupApplyMode, ScopedParamRule } from '@/lib/onelinkGroupSchema';
-import type { LinkGroupItemStatus, LinkGroupStatus } from '@/lib/onelinkGroupTypes';
+import type {
+  LinkGroupItemStatus,
+  LinkGroupShortLinkIdConfig,
+  LinkGroupStatus,
+} from '@/lib/onelinkGroupTypes';
 
 export const DEFAULT_LIST_LIMIT = 200;
 export const EXECUTION_CONCURRENCY = 3;
@@ -18,6 +22,7 @@ export interface GroupRow {
   id: string;
   name: string;
   planned_count: number;
+  shortlink_id_config_json?: string;
   status: LinkGroupStatus;
   success_count: number;
   template_id: string;
@@ -95,6 +100,7 @@ export interface LinkGroupDetail {
   pageSize: number;
   plannedCount: number;
   scopedParams: ScopedParamRule[];
+  shortLinkIdConfig: LinkGroupShortLinkIdConfig;
   status: LinkGroupStatus;
   successCount: number;
   templateId: string;
@@ -135,6 +141,7 @@ export interface GroupExecutionConfig {
   brandDomain: string;
   groupName: string;
   groupId: string;
+  shortLinkIdConfig: LinkGroupShortLinkIdConfig;
   templateId: string;
 }
 

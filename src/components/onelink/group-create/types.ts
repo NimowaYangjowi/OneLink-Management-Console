@@ -1,7 +1,7 @@
 /**
  * Shared type definitions for OneLinkGroupCreatePage feature modules.
  */
-import type { LinkGroupNodeLevel } from '@/lib/onelinkGroupTypes';
+import type { LinkGroupNodeLevel, LinkGroupShortLinkIdConfig } from '@/lib/onelinkGroupTypes';
 
 export type ApplyMode = 'all' | 'failed_only' | 'new_only';
 
@@ -14,12 +14,14 @@ export type EditorTreeNode = {
 
 export type ParamRow = {
   id: string;
+  isDisabled: boolean;
   key: string;
   scopePathPrefixes: string[];
   value: string;
 };
 
 export type ScopedParamRule = {
+  isDisabled?: boolean;
   key: string;
   scopePathPrefixes: string[];
   value: string;
@@ -74,6 +76,7 @@ export type EditSeedResponse = {
   globalParams?: Record<string, string>;
   id: string;
   name: string;
+  shortLinkIdConfig?: LinkGroupShortLinkIdConfig;
   scopedParams?: ScopedParamRule[];
   templateId: string;
   treeConfigJson: string;

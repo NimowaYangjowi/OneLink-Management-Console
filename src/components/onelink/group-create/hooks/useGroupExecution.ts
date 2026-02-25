@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
+import type { LinkGroupShortLinkIdConfig } from '@/lib/onelinkGroupTypes';
 import type { ApplyMode, GroupExecutionDetail, ScopedParamRule } from '@/components/onelink/group-create/types';
 
 type UseGroupExecutionArgs = {
@@ -17,6 +18,7 @@ type UseGroupExecutionArgs = {
   onComplete: () => void;
   onSetWarnings: (warnings: string[]) => void;
   resolvedBrandDomain: string;
+  shortLinkIdConfig: LinkGroupShortLinkIdConfig;
   resolvedTemplateId: string;
   scopedParams: ScopedParamRule[];
   serializedRoots: LinkGroupTreeNode[];
@@ -35,6 +37,7 @@ export function useGroupExecution({
   onComplete,
   onSetWarnings,
   resolvedBrandDomain,
+  shortLinkIdConfig,
   resolvedTemplateId,
   scopedParams,
   serializedRoots,
@@ -158,6 +161,7 @@ export function useGroupExecution({
         globalParams,
         name: groupName.trim(),
         scopedParams,
+        shortLinkIdConfig,
         templateId: resolvedTemplateId.trim(),
         treeConfig: {
           roots: serializedRoots,
@@ -252,6 +256,7 @@ export function useGroupExecution({
     onComplete,
     onSetWarnings,
     resolvedBrandDomain,
+    shortLinkIdConfig,
     resolvedTemplateId,
     scopedParams,
     serializedRoots,

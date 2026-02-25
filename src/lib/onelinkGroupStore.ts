@@ -31,6 +31,7 @@ import {
   mapGroupItemRow,
   mapGroupRowToSummary,
   parseGlobalParamsJson,
+  parseShortLinkIdConfigJson,
   parseScopedParamsJson,
   refreshGroupAggregates,
 } from '@/lib/onelinkGroupStore.utils';
@@ -39,8 +40,51 @@ import type { LinkGroupItemStatus } from '@/lib/onelinkGroupTypes';
 
 export type { LinkGroupDetail, LinkGroupItemRecord, LinkGroupSummary, LinkGroupUpdateDiff, LinkGroupUpdateResult } from '@/lib/onelinkGroupStore.types';
 
+export function isLinkGroupNameTaken(name: string, excludeGroupId?: string): boolean {
+  const normalizedName = name.trim();
+  if (!normalizedName) {
+    return false;
+  }
+
+  const db = getSqliteDatabase();
+  const normalizedExcludeGroupId = excludeGroupId?.trim();
+
+  if (normalizedExcludeGroupId) {
+    const row = db
+      .prepare(
+        `
+          SELECT id
+          FROM onelink_link_groups
+          WHERE lower(trim(name)) = lower(trim(?))
+            AND id <> ?
+          LIMIT 1
+        `,
+      )
+      .get(normalizedName, normalizedExcludeGroupId) as { id: string } | undefined;
+
+    return Boolean(row?.id);
+  }
+
+  const row = db
+    .prepare(
+      `
+        SELECT id
+        FROM onelink_link_groups
+        WHERE lower(trim(name)) = lower(trim(?))
+        LIMIT 1
+      `,
+    )
+    .get(normalizedName) as { id: string } | undefined;
+
+  return Boolean(row?.id);
+}
+
 export function createLinkGroupAndStartExecution(input: CreateLinkGroupRequestPayload): LinkGroupSummary {
   const db = getSqliteDatabase();
+  if (isLinkGroupNameTaken(input.name)) {
+    throw new Error('LINK_GROUP_NAME_DUPLICATE');
+  }
+
   const groupId = randomUUID();
   const now = new Date().toISOString();
   const seeds = buildSeeds(input.treeConfig.roots, input.globalParams, input.scopedParams);
@@ -56,6 +100,7 @@ export function createLinkGroupAndStartExecution(input: CreateLinkGroupRequestPa
           tree_config_json,
           global_params_json,
           scoped_params_json,
+          shortlink_id_config_json,
           planned_count,
           success_count,
           failed_count,
@@ -63,7 +108,7 @@ export function createLinkGroupAndStartExecution(input: CreateLinkGroupRequestPa
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'running', ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'running', ?, ?)
       `,
     ).run(
       groupId,
@@ -73,6 +118,7 @@ export function createLinkGroupAndStartExecution(input: CreateLinkGroupRequestPa
       JSON.stringify(input.treeConfig),
       JSON.stringify(input.globalParams),
       JSON.stringify(input.scopedParams),
+      JSON.stringify(input.shortLinkIdConfig),
       input.plannedCount,
       now,
       now,
@@ -173,6 +219,10 @@ export function updateLinkGroupAndStartExecution(
     throw new Error('LINK_GROUP_RUNNING');
   }
 
+  if (isLinkGroupNameTaken(input.name, groupId)) {
+    throw new Error('LINK_GROUP_NAME_DUPLICATE');
+  }
+
   const now = new Date().toISOString();
   const existingItems = getExistingGroupItemsSnapshot(groupId);
   const existingByVariant = new Map(existingItems.map((item) => [item.variantKey, item]));
@@ -209,6 +259,7 @@ export function updateLinkGroupAndStartExecution(
           tree_config_json = ?,
           global_params_json = ?,
           scoped_params_json = ?,
+          shortlink_id_config_json = ?,
           planned_count = ?,
           status = 'draft',
           updated_at = ?
@@ -221,6 +272,7 @@ export function updateLinkGroupAndStartExecution(
       JSON.stringify(input.treeConfig),
       JSON.stringify(input.globalParams),
       JSON.stringify(input.scopedParams),
+      JSON.stringify(input.shortLinkIdConfig),
       input.plannedCount,
       now,
       groupId,
@@ -261,6 +313,7 @@ export function updateLinkGroupAndStartExecution(
       brandDomain: input.brandDomain,
       groupId,
       groupName: input.name,
+      shortLinkIdConfig: input.shortLinkIdConfig,
       templateId: input.templateId,
     };
 
@@ -402,6 +455,7 @@ export function listLinkGroups(limit = DEFAULT_LIST_LIMIT): LinkGroupSummary[] {
           tree_config_json,
           global_params_json,
           scoped_params_json,
+          shortlink_id_config_json,
           planned_count,
           success_count,
           failed_count,
@@ -441,6 +495,7 @@ export function getLinkGroupDetail(
           tree_config_json,
           global_params_json,
           scoped_params_json,
+          shortlink_id_config_json,
           planned_count,
           success_count,
           failed_count,
@@ -506,6 +561,7 @@ export function getLinkGroupDetail(
     pageSize: safePageSize,
     plannedCount: group.planned_count,
     scopedParams: parseScopedParamsJson(group.scoped_params_json),
+    shortLinkIdConfig: parseShortLinkIdConfigJson(group.shortlink_id_config_json),
     status: group.status,
     successCount: group.success_count,
     templateId: group.template_id,

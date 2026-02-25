@@ -98,6 +98,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Group is currently running. Retry after completion.' }, { status: 409 });
     }
 
+    if (error instanceof Error && error.message === 'LINK_GROUP_NAME_DUPLICATE') {
+      return NextResponse.json({ error: 'Link group name already exists.' }, { status: 409 });
+    }
+
     if (error instanceof Error && error.message.includes('uniq_group_variant_key')) {
       return NextResponse.json(
         { error: 'Duplicate leaf paths were detected. Please adjust the tree and retry.' },

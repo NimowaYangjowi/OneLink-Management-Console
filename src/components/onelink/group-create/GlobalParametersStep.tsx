@@ -8,7 +8,9 @@ import {
   AccordionSummary,
   Autocomplete,
   Button,
+  Checkbox,
   Divider,
+  FormControlLabel,
   Stack,
   TextField,
   Typography,
@@ -29,9 +31,13 @@ type GlobalParametersStepProps = {
   additionalParamRows: ParamRow[];
   additionalParamValueOptions: string[];
   deepLinkFields: DeepLinkField[];
+  forceDeeplink: boolean;
+  isRetargeting: boolean;
   onAddParamRow: () => void;
   onRemoveParamRow: (rowId: string) => void;
   onSetDeepLinkParamValue: (paramKey: string, value: string) => void;
+  onSetForceDeeplink: (checked: boolean) => void;
+  onSetRetargeting: (checked: boolean) => void;
   onSetActiveParamKey: (value: string) => void;
   onUpdateParamRow: (rowId: string, field: 'key' | 'value', value: string) => void;
   scopeHint: string;
@@ -42,9 +48,13 @@ function GlobalParametersStep({
   additionalParamRows,
   additionalParamValueOptions,
   deepLinkFields,
+  forceDeeplink,
+  isRetargeting,
   onAddParamRow,
   onRemoveParamRow,
   onSetDeepLinkParamValue,
+  onSetForceDeeplink,
+  onSetRetargeting,
   onSetActiveParamKey,
   onUpdateParamRow,
   scopeHint,
@@ -79,6 +89,46 @@ function GlobalParametersStep({
         } }
       >
         <AccordionSummary expandIcon={ <ExpandMoreIcon /> } sx={ { px: 0.5 } }>
+          <Typography sx={ { fontSize: 14, fontWeight: 700 } }>Retargeting</Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={ { px: 0.5, pt: 0, pb: 1.5 } }>
+          <Stack spacing={ 1.25 }>
+            <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+              Keep this enabled for consistent retargeting attribution.
+            </Typography>
+            <Divider />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={ isRetargeting }
+                  onChange={ (event) => {
+                    onSetRetargeting(event.target.checked);
+                    onSetActiveParamKey('is_retargeting');
+                  } }
+                />
+              }
+              label='Retargeting measurement (is_retargeting=true)'
+            />
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion
+        defaultExpanded={ false }
+        disableGutters
+        elevation={ 0 }
+        sx={ {
+          '&.Mui-expanded': { m: 0 },
+          '&:before': { display: 'none' },
+          '&:last-of-type': { borderBottom: '1px solid', borderColor: 'divider' },
+          backgroundColor: 'transparent',
+          borderColor: 'divider',
+          borderRadius: 0,
+          borderTop: '1px solid',
+          boxShadow: 'none',
+        } }
+      >
+        <AccordionSummary expandIcon={ <ExpandMoreIcon /> } sx={ { px: 0.5 } }>
           <Typography sx={ { fontSize: 14, fontWeight: 700 } }>Deep Linking &amp; Redirection</Typography>
         </AccordionSummary>
         <AccordionDetails sx={ { px: 0.5, pt: 0, pb: 1.5 } }>
@@ -87,6 +137,18 @@ function GlobalParametersStep({
               These parameters are always available for group-level defaults.
             </Typography>
             <Divider />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={ forceDeeplink }
+                  onChange={ (event) => {
+                    onSetForceDeeplink(event.target.checked);
+                    onSetActiveParamKey('af_force_deeplink');
+                  } }
+                />
+              }
+              label='Force deeplink (af_force_deeplink=true)'
+            />
             {deepLinkFields.map((field, index) => (
               <Stack
                 key={ field.key }
@@ -100,7 +162,10 @@ function GlobalParametersStep({
                     onSetDeepLinkParamValue(field.key, newValue ?? '');
                     onSetActiveParamKey(field.key);
                   } }
-                  onInputChange={ (_, newInputValue) => {
+                  onInputChange={ (_, newInputValue, reason) => {
+                    if (reason === 'reset') {
+                      return;
+                    }
                     onSetDeepLinkParamValue(field.key, newInputValue);
                     onSetActiveParamKey(field.key);
                   } }
@@ -166,7 +231,10 @@ function GlobalParametersStep({
                     onUpdateParamRow(row.id, 'key', nextKey);
                     onSetActiveParamKey(nextKey.trim());
                   } }
-                  onInputChange={ (_, newInputValue) => {
+                  onInputChange={ (_, newInputValue, reason) => {
+                    if (reason === 'reset') {
+                      return;
+                    }
                     onUpdateParamRow(row.id, 'key', newInputValue);
                     onSetActiveParamKey(newInputValue.trim());
                   } }
@@ -186,7 +254,12 @@ function GlobalParametersStep({
                   fullWidth
                   inputValue={ row.value }
                   onChange={ (_, newValue) => onUpdateParamRow(row.id, 'value', newValue ?? '') }
-                  onInputChange={ (_, newInputValue) => onUpdateParamRow(row.id, 'value', newInputValue) }
+                  onInputChange={ (_, newInputValue, reason) => {
+                    if (reason === 'reset') {
+                      return;
+                    }
+                    onUpdateParamRow(row.id, 'value', newInputValue);
+                  } }
                   options={ additionalParamValueOptions }
                   renderInput={ (params) => (
                     <TextField

@@ -26,7 +26,12 @@ import {
   computeLeafCount,
   generateLeafPaths,
 } from '@/lib/onelinkGroupTree';
-import type { LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
+import {
+  normalizeLinkGroupShortLinkIdConfig,
+  normalizeShortLinkFieldKey,
+  resolveShortLinkIdBaseFromPayload,
+} from '@/lib/onelinkShortLinkId';
+import type { LinkGroupShortLinkIdConfig, LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
 import { useSettings } from '@/lib/providers/SettingsContext';
 import BaseSetupStep from './group-create/BaseSetupStep';
 import { GROUP_CREATE_STEPS } from './group-create/constants';
@@ -40,6 +45,9 @@ import { useGroupTreeSelection } from './group-create/hooks/useGroupTreeSelectio
 import LinkPreviewPanel from './group-create/LinkPreviewPanel';
 import type { NodeListProps } from './group-create/NodeList';
 import ReviewExecuteStep from './group-create/ReviewExecuteStep';
+import ShortLinkIdStep from './group-create/ShortLinkIdStep';
+import type { ShortLinkFieldOption } from './group-create/ShortLinkIdStep';
+import ShortLinkTreePreviewPanel from './group-create/ShortLinkTreePreviewPanel';
 import { normalizeScopePathPrefixes } from './group-create/scopeUtils';
 import {
   computeMaxDepth,
@@ -56,6 +64,22 @@ import type {
   OneLinkGroupCreatePageProps,
 } from './group-create/types';
 
+const RETARGETING_PARAM_KEY = 'is_retargeting';
+const SHORT_LINK_SYSTEM_FIELD_KEYS = new Set([
+  'af_android_url',
+  'af_dp',
+  'af_force_deeplink',
+  'af_ios_url',
+  'af_web_dp',
+  RETARGETING_PARAM_KEY,
+]);
+const SHORT_LINK_FIELD_LABELS: Record<string, string> = {
+  af_ad: 'Ad (af_ad)',
+  af_adset: 'Ad Set (af_adset)',
+  c: 'Campaign (c)',
+  pid: 'Media Source (pid)',
+};
+
 function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
   const { settings } = useSettings();
   const isEditMode = Boolean(editGroupId);
@@ -66,11 +90,15 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
   const [brandDomain, setBrandDomain] = useState('');
   const [dismissedAutoBrandDomainTemplateId, setDismissedAutoBrandDomainTemplateId] = useState('');
   const [roots, setRoots] = useState<EditorTreeNode[]>([]);
+  const [shortLinkIdConfig, setShortLinkIdConfig] = useState<LinkGroupShortLinkIdConfig>({ mode: 'random' });
   const [warnings, setWarnings] = useState<string[]>([]);
   const [isTreePreviewExpanded, setIsTreePreviewExpanded] = useState(true);
   const [applyMode, setApplyMode] = useState<ApplyMode>('all');
   const [isLoadingEditSeed, setIsLoadingEditSeed] = useState(isEditMode);
   const [editSeedError, setEditSeedError] = useState('');
+  const [isCheckingGroupNameDuplicate, setIsCheckingGroupNameDuplicate] = useState(false);
+  const [isGroupNameDuplicate, setIsGroupNameDuplicate] = useState(false);
+  const [groupNameDuplicateCheckError, setGroupNameDuplicateCheckError] = useState('');
 
   const isEditHydrating = isEditMode && isLoadingEditSeed;
 
@@ -107,12 +135,16 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     additionalParamValueOptions,
     addParamRow,
     deepLinkFields,
+    forceDeeplink,
+    isRetargeting,
     globalParams,
     normalizedGlobalParamRows,
     removeParamRow,
     scopedParams,
     setActiveParamKey,
     setDeepLinkParamValue,
+    setForceDeeplink,
+    setRetargeting,
     setGlobalParamRows,
     sortedScopedParams,
     updateParamRow,
@@ -178,6 +210,7 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     onComplete: () => setActiveStep(3),
     onSetWarnings: setWarnings,
     resolvedBrandDomain,
+    shortLinkIdConfig,
     resolvedTemplateId,
     scopedParams,
     serializedRoots,
@@ -250,20 +283,39 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
         setTemplateId(payload.templateId);
         setBrandDomain(payload.brandDomain);
         setRoots(hydrateEditorNodes(parsedTree.roots));
+        setShortLinkIdConfig(normalizeLinkGroupShortLinkIdConfig(payload.shortLinkIdConfig));
 
         const globalRows = Object.entries(payload.globalParams ?? {}).map(([key, value]) => ({
           id: createClientId(),
+          isDisabled: false,
           key,
           scopePathPrefixes: [],
           value,
         }));
         const scopedRows = (payload.scopedParams ?? []).map((rule) => ({
           id: createClientId(),
+          isDisabled: Boolean(rule.isDisabled),
           key: rule.key,
           scopePathPrefixes: normalizeScopePathPrefixes(rule.scopePathPrefixes),
           value: rule.value,
         }));
-        setGlobalParamRows([...globalRows, ...scopedRows]);
+        const hasRetargetingRule = [...globalRows, ...scopedRows].some(
+          (row) => row.key.trim() === RETARGETING_PARAM_KEY,
+        );
+        const nextRows = hasRetargetingRule
+          ? [...globalRows, ...scopedRows]
+          : [
+              ...globalRows,
+              ...scopedRows,
+              {
+                id: createClientId(),
+                isDisabled: false,
+                key: RETARGETING_PARAM_KEY,
+                scopePathPrefixes: [],
+                value: 'true',
+              },
+            ];
+        setGlobalParamRows(nextRows);
 
         resetSelectionState();
         resetTreeEditorState();
@@ -287,24 +339,126 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     };
   }, [editGroupId, resetExecutionState, resetSelectionState, resetTreeEditorState, setGlobalParamRows]);
 
+  useEffect(() => {
+    const normalizedGroupName = groupName.trim();
+    if (!normalizedGroupName) {
+      setIsCheckingGroupNameDuplicate(false);
+      setIsGroupNameDuplicate(false);
+      setGroupNameDuplicateCheckError('');
+      return;
+    }
+
+    setIsCheckingGroupNameDuplicate(true);
+    setIsGroupNameDuplicate(false);
+    setGroupNameDuplicateCheckError('');
+
+    let isDisposed = false;
+    const abortController = new AbortController();
+    const timer = window.setTimeout(() => {
+      const checkDuplicateName = async () => {
+        try {
+          const query = new URLSearchParams({ name: normalizedGroupName });
+          if (editGroupId) {
+            query.set('excludeId', editGroupId);
+          }
+
+          const response = await fetch(`/api/onelink-groups?${query.toString()}`, {
+            cache: 'no-store',
+            method: 'GET',
+            signal: abortController.signal,
+          });
+          const payload = (await response.json().catch(() => null)) as { error?: string; exists?: boolean } | null;
+          if (!response.ok) {
+            throw new Error(payload?.error || 'Failed to validate group name.');
+          }
+
+          if (!isDisposed) {
+            setIsGroupNameDuplicate(Boolean(payload?.exists));
+          }
+        } catch {
+          if (!isDisposed && !abortController.signal.aborted) {
+            setIsGroupNameDuplicate(false);
+            setGroupNameDuplicateCheckError('Could not verify duplicate group names right now.');
+          }
+        } finally {
+          if (!isDisposed && !abortController.signal.aborted) {
+            setIsCheckingGroupNameDuplicate(false);
+          }
+        }
+      };
+
+      void checkDuplicateName();
+    }, 250);
+
+    return () => {
+      isDisposed = true;
+      window.clearTimeout(timer);
+      abortController.abort();
+    };
+  }, [editGroupId, groupName]);
+
+  const groupNameHelperText = useMemo(() => {
+    if (!groupName.trim()) {
+      return undefined;
+    }
+    if (isGroupNameDuplicate) {
+      return 'A link group with this name already exists.';
+    }
+    if (isCheckingGroupNameDuplicate) {
+      return 'Checking for duplicate group names...';
+    }
+    if (groupNameDuplicateCheckError) {
+      return groupNameDuplicateCheckError;
+    }
+    return undefined;
+  }, [
+    groupName,
+    groupNameDuplicateCheckError,
+    isCheckingGroupNameDuplicate,
+    isGroupNameDuplicate,
+  ]);
+
   const canProceedFromStep = useMemo(() => {
     if (isEditHydrating) {
       return false;
     }
 
     if (activeStep === 0) {
-      return Boolean(groupName.trim() && resolvedTemplateId.trim());
+      return Boolean(
+        groupName.trim()
+        && resolvedTemplateId.trim()
+        && !isCheckingGroupNameDuplicate
+        && !isGroupNameDuplicate,
+      );
     }
 
     if (activeStep === 1) {
       return leafCount > 0 && leafCount <= 2000;
     }
 
+    if (activeStep === 2) {
+      if (shortLinkIdConfig.mode !== 'field') {
+        return true;
+      }
+
+      return Boolean(normalizeShortLinkFieldKey(shortLinkIdConfig.fieldKey));
+    }
+
     return true;
-  }, [activeStep, groupName, isEditHydrating, leafCount, resolvedTemplateId]);
+  }, [
+    activeStep,
+    groupName,
+    isCheckingGroupNameDuplicate,
+    isEditHydrating,
+    isGroupNameDuplicate,
+    leafCount,
+    shortLinkIdConfig,
+    resolvedTemplateId,
+  ]);
 
   const {
     activeSnippetContextLabel,
+    previewSnippets,
     filteredSnippets,
     focusedSnippetIndex,
     handleSelectSnippet,
@@ -326,6 +480,65 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     selectedTreeNodes,
     sortedScopedParams,
   });
+  const shortLinkFieldOptions = useMemo<ShortLinkFieldOption[]>(() => {
+    const hierarchicalFieldOrder = ['pid', 'c', 'af_adset', 'af_ad'];
+    const usedFieldKeys = new Set<string>();
+
+    previewSnippets.forEach((snippet) => {
+      Object.entries(snippet.payload).forEach(([rawKey, rawValue]) => {
+        const key = normalizeShortLinkFieldKey(rawKey);
+        if (!key || SHORT_LINK_SYSTEM_FIELD_KEYS.has(key)) {
+          return;
+        }
+
+        if (typeof rawValue !== 'string' || !rawValue.trim()) {
+          return;
+        }
+
+        usedFieldKeys.add(key);
+      });
+    });
+
+    return [...usedFieldKeys]
+      .sort((first, second) => {
+        const firstHierarchyIndex = hierarchicalFieldOrder.indexOf(first);
+        const secondHierarchyIndex = hierarchicalFieldOrder.indexOf(second);
+        const isFirstHierarchyField = firstHierarchyIndex >= 0;
+        const isSecondHierarchyField = secondHierarchyIndex >= 0;
+
+        if (isFirstHierarchyField && isSecondHierarchyField) {
+          return firstHierarchyIndex - secondHierarchyIndex;
+        }
+
+        if (isFirstHierarchyField) {
+          return -1;
+        }
+
+        if (isSecondHierarchyField) {
+          return 1;
+        }
+
+        return first.localeCompare(second);
+      })
+      .map((key) => ({
+        key,
+        label: SHORT_LINK_FIELD_LABELS[key] ?? `Custom Parameter (${key})`,
+      }));
+  }, [previewSnippets]);
+  const shortLinkFieldMissingCount = useMemo(() => {
+    if (shortLinkIdConfig.mode !== 'field') {
+      return 0;
+    }
+
+    const normalizedFieldKey = normalizeShortLinkFieldKey(shortLinkIdConfig.fieldKey);
+    if (!normalizedFieldKey) {
+      return filteredSnippets.length;
+    }
+
+    return filteredSnippets.reduce((count, snippet) => (
+      resolveShortLinkIdBaseFromPayload(snippet.payload, shortLinkIdConfig) ? count : count + 1
+    ), 0);
+  }, [filteredSnippets, shortLinkIdConfig]);
 
   const handleTemplateIdChange = useCallback((nextValue: string) => {
     setTemplateId(nextValue);
@@ -342,6 +555,34 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     setDismissedAutoBrandDomainTemplateId('');
     setBrandDomain(nextValue);
   }, [resolvedTemplateId]);
+  const handleShortLinkModeChange = useCallback((mode: LinkGroupShortLinkIdConfig['mode']) => {
+    if (mode === 'random') {
+      setShortLinkIdConfig({ mode: 'random' });
+      return;
+    }
+
+    setShortLinkIdConfig((previous) => {
+      if (previous.mode === 'field') {
+        const normalizedPreviousFieldKey = normalizeShortLinkFieldKey(previous.fieldKey);
+        return {
+          fieldKey: normalizedPreviousFieldKey || 'pid',
+          mode: 'field',
+        };
+      }
+
+      return {
+        fieldKey: 'pid',
+        mode: 'field',
+      };
+    });
+  }, []);
+  const handleShortLinkFieldKeyChange = useCallback((fieldKey: string) => {
+    const normalizedFieldKey = normalizeShortLinkFieldKey(fieldKey);
+    setShortLinkIdConfig({
+      fieldKey: normalizedFieldKey,
+      mode: 'field',
+    });
+  }, []);
 
   const nodeListProps = useMemo<Omit<NodeListProps, 'nodes'>>(() => ({
     isNodeExpanded,
@@ -359,10 +600,14 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     additionalParamRows,
     additionalParamValueOptions,
     deepLinkFields,
+    forceDeeplink,
+    isRetargeting,
     onAddParamRow: addParamRow,
     onRemoveParamRow: removeParamRow,
     onSetActiveParamKey: setActiveParamKey,
     onSetDeepLinkParamValue: setDeepLinkParamValue,
+    onSetForceDeeplink: setForceDeeplink,
+    onSetRetargeting: setRetargeting,
     onUpdateParamRow: updateParamRow,
     scopeHint: activeParamScopeHint,
   }), [
@@ -372,10 +617,29 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     additionalParamRows,
     additionalParamValueOptions,
     deepLinkFields,
+    forceDeeplink,
+    isRetargeting,
     removeParamRow,
     setActiveParamKey,
     setDeepLinkParamValue,
+    setForceDeeplink,
+    setRetargeting,
     updateParamRow,
+  ]);
+  const shortLinkIdStepProps = useMemo(() => ({
+    fieldMissingCount: shortLinkFieldMissingCount,
+    fieldOptions: shortLinkFieldOptions,
+    leafPathCount: leafPaths.length,
+    onSelectFieldKey: handleShortLinkFieldKeyChange,
+    onSelectMode: handleShortLinkModeChange,
+    shortLinkIdConfig,
+  }), [
+    handleShortLinkFieldKeyChange,
+    handleShortLinkModeChange,
+    leafPaths.length,
+    shortLinkFieldMissingCount,
+    shortLinkFieldOptions,
+    shortLinkIdConfig,
   ]);
 
   return (
@@ -444,6 +708,8 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
                   {!isEditHydrating && activeStep === 0 && (
                     <BaseSetupStep
                       brandDomain={ resolvedBrandDomain }
+                      groupNameError={ isGroupNameDuplicate }
+                      groupNameHelperText={ groupNameHelperText }
                       groupName={ groupName }
                       onBrandDomainChange={ handleBrandDomainChange }
                       onGroupNameChange={ setGroupName }
@@ -469,7 +735,7 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
                   )}
 
                   {!isEditHydrating && activeStep === 2 && (
-                    <GlobalParametersStep { ...globalParametersStepProps } />
+                    <ShortLinkIdStep { ...shortLinkIdStepProps } />
                   )}
 
                   {!isEditHydrating && activeStep === 3 && (
@@ -479,7 +745,9 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
                       canRetryFailedItems={ canRetryFailedItems }
                       executionDetail={ executionDetail }
                       executionProgressPercent={ executionProgressPercent }
-                      globalParamCount={ normalizedGlobalParamRows.filter((row) => row.key && row.value).length }
+                      globalParamCount={ normalizedGlobalParamRows.filter(
+                        (row) => row.key && row.value && !row.isDisabled,
+                      ).length }
                       groupName={ groupName }
                       isEditHydrating={ isEditHydrating }
                       isEditMode={ isEditMode }
@@ -552,6 +820,13 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
                     <GlobalParametersStep { ...globalParametersStepProps } />
                   </Box>
                 </Paper>
+              ) : activeStep === 2 ? (
+                <ShortLinkTreePreviewPanel
+                  previewSnippets={ filteredSnippets }
+                  resolvedBrandDomain={ resolvedBrandDomain }
+                  resolvedTemplateId={ resolvedTemplateId }
+                  shortLinkIdConfig={ shortLinkIdConfig }
+                />
               ) : (
                 <LinkPreviewPanel
                   activeSnippetNodeValue={ activeSnippetContextLabel }
@@ -569,15 +844,17 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
               )}
             </Stack>
 
-            <TreePreviewPanel
-              leafCount={ leafCount }
-              maxDepth={ maxDepth }
-              nodes={ roots }
-              onToggleExpanded={ () => setIsTreePreviewExpanded((previous) => !previous) }
-              previewSnippets={ filteredSnippets }
-              totalNodeCount={ allTreeNodes.length }
-              treePreviewExpanded={ isTreePreviewExpanded }
-            />
+            {activeStep !== 2 && (
+              <TreePreviewPanel
+                leafCount={ leafCount }
+                maxDepth={ maxDepth }
+                nodes={ roots }
+                onToggleExpanded={ () => setIsTreePreviewExpanded((previous) => !previous) }
+                previewSnippets={ filteredSnippets }
+                totalNodeCount={ allTreeNodes.length }
+                treePreviewExpanded={ isTreePreviewExpanded }
+              />
+            )}
           </Stack>
 
         </Stack>

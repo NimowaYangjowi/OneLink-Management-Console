@@ -39,6 +39,12 @@ export function ensureOneLinkLinkGroupColumns(db: Database.Database): void {
   ensureColumn(db, 'onelink_links', 'group_id', 'TEXT');
   ensureColumn(db, 'onelink_links', 'group_item_id', 'TEXT');
   ensureColumn(db, 'onelink_link_groups', 'scoped_params_json', 'TEXT NOT NULL DEFAULT \'[]\'');
+  ensureColumn(
+    db,
+    'onelink_link_groups',
+    'shortlink_id_config_json',
+    'TEXT NOT NULL DEFAULT \'{"mode":"random"}\'',
+  );
 
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_onelink_links_group_id ON onelink_links(group_id);
@@ -81,6 +87,7 @@ function initializeSchema(db: Database.Database): void {
       tree_config_json TEXT NOT NULL,
       global_params_json TEXT NOT NULL DEFAULT '{}',
       scoped_params_json TEXT NOT NULL DEFAULT '[]',
+      shortlink_id_config_json TEXT NOT NULL DEFAULT '{"mode":"random"}',
       planned_count INTEGER NOT NULL,
       success_count INTEGER NOT NULL DEFAULT 0,
       failed_count INTEGER NOT NULL DEFAULT 0,
