@@ -1,7 +1,7 @@
 # Generated Design Tokens
 
 Source: `design/design-system.pen`  
-Generated: `2026-02-18T06:55:29.101Z`  
+Generated: `2026-02-25T05:49:07.539Z`  
 Token count: `52`
 
 ## Theme Axes
