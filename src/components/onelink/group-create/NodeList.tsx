@@ -8,6 +8,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { useState } from 'react';
 import type { LinkGroupNodeLevel } from '@/lib/onelinkGroupTypes';
 import { countDescendants } from './treeUtils';
 import type { EditorTreeNode } from './types';
@@ -67,19 +68,28 @@ function getChipMetricLabel(node: EditorTreeNode): string {
 
 export type NodeListProps = {
   isNodeExpanded: (nodeId: string) => boolean;
+  isNodeOnSelectedPath: (nodeId: string) => boolean;
   isNodeSelected: (nodeId: string) => boolean;
   nodes: EditorTreeNode[];
   onChipClick: (nodeId: string, level: LinkGroupNodeLevel, siblingNodeIds: string[], shiftKey: boolean) => void;
   removeNode: (nodeId: string) => void;
 };
 
+function hasNodeId(nodes: EditorTreeNode[], nodeId: string): boolean {
+  return nodes.some((node) => node.id === nodeId || hasNodeId(node.children, nodeId));
+}
+
 function NodeList({
   isNodeExpanded,
+  isNodeOnSelectedPath,
   isNodeSelected,
   nodes,
   onChipClick,
   removeNode,
 }: NodeListProps) {
+  const [armedDeleteNodeId, setArmedDeleteNodeId] = useState('');
+  const activeArmedDeleteNodeId = hasNodeId(nodes, armedDeleteNodeId) ? armedDeleteNodeId : '';
+
   if (nodes.length === 0) {
     return null;
   }
@@ -89,7 +99,9 @@ function NodeList({
   const collapsedNodes = nodes.filter((node) => !(node.children.length > 0 && isNodeExpanded(node.id)));
 
   const renderNodeChip = (node: EditorTreeNode) => {
+    const isOnSelectedPath = isNodeOnSelectedPath(node.id);
     const isSelected = isNodeSelected(node.id);
+    const isDeleteArmed = activeArmedDeleteNodeId === node.id;
     const metricLabel = getChipMetricLabel(node);
     const chipLabel = metricLabel ? `${node.value} ${metricLabel}` : node.value;
 
@@ -100,38 +112,72 @@ function NodeList({
         label={ chipLabel }
         onClick={ (event) => {
           event.stopPropagation();
+          setArmedDeleteNodeId('');
           onChipClick(node.id, node.level, siblingNodeIds, event.shiftKey);
         } }
         onDelete={ (event) => {
           event.stopPropagation();
-          removeNode(node.id);
+          if (activeArmedDeleteNodeId === node.id) {
+            setArmedDeleteNodeId('');
+            removeNode(node.id);
+            return;
+          }
+          setArmedDeleteNodeId(node.id);
         } }
         size='small'
-        sx={ isSelected ? (theme) => {
-          const style = LEVEL_SELECTED_STYLE[node.level];
-          const textColor = style.textTone === 'contrast'
-            ? theme.palette.primary.contrastText
-            : style.textTone === 'dark'
-              ? theme.palette.primary.dark
-              : theme.palette.primary.main;
-          return {
+        sx={ isDeleteArmed
+          ? (theme) => ({
             '& .MuiChip-deleteIcon': {
-              color: style.textTone === 'contrast'
-                ? alpha(theme.palette.primary.contrastText, 0.8)
-                : alpha(theme.palette.primary.main, 0.7),
+              color: alpha(theme.palette.error.main, 0.88),
               '&:hover': {
-                color: textColor,
+                color: theme.palette.error.main,
               },
             },
-            backgroundColor: alpha(theme.palette.primary.main, style.bgAlpha),
-            borderColor: alpha(theme.palette.primary.main, style.borderAlpha),
-            color: textColor,
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, style.hoverBgAlpha),
-            },
-          };
-        } : undefined }
-        variant={ isSelected ? 'filled' : 'outlined' }
+            backgroundColor: alpha(theme.palette.error.main, 0.1),
+            borderColor: alpha(theme.palette.error.main, 0.54),
+            color: theme.palette.error.main,
+          })
+          : isSelected ? (theme) => {
+            const style = LEVEL_SELECTED_STYLE[node.level];
+            const textColor = style.textTone === 'contrast'
+              ? theme.palette.primary.contrastText
+              : style.textTone === 'dark'
+                ? theme.palette.primary.dark
+                : theme.palette.primary.main;
+            return {
+              '& .MuiChip-deleteIcon': {
+                color: style.textTone === 'contrast'
+                  ? alpha(theme.palette.primary.contrastText, 0.8)
+                  : alpha(theme.palette.primary.main, 0.7),
+                '&:hover': {
+                  color: textColor,
+                },
+              },
+              backgroundColor: alpha(theme.palette.primary.main, style.bgAlpha),
+              borderColor: alpha(theme.palette.primary.main, style.borderAlpha),
+              color: textColor,
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.primary.main, style.hoverBgAlpha),
+              },
+            };
+          }
+            : isOnSelectedPath ? (theme) => ({
+              '& .MuiChip-deleteIcon': {
+                color: alpha(theme.palette.primary.main, 0.6),
+                '&:hover': {
+                  color: theme.palette.primary.dark,
+                },
+              },
+              backgroundColor: alpha(theme.palette.primary.main, 0.16),
+              border: '1px solid',
+              borderColor: alpha(theme.palette.primary.main, 0.42),
+              color: theme.palette.primary.dark,
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.primary.main, 0.22),
+              },
+            })
+            : undefined }
+        variant={ isDeleteArmed || isSelected || isOnSelectedPath ? 'filled' : 'outlined' }
       />
     );
   };
@@ -165,6 +211,7 @@ function NodeList({
           >
             <NodeList
               isNodeExpanded={ isNodeExpanded }
+              isNodeOnSelectedPath={ isNodeOnSelectedPath }
               isNodeSelected={ isNodeSelected }
               nodes={ node.children }
               onChipClick={ onChipClick }

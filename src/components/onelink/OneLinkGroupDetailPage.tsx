@@ -19,10 +19,16 @@ import {
   Typography,
 } from '@mui/material';
 import Link from 'next/link';
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
+import TreePreviewPanel from '@/components/onelink/group-create/TreePreviewPanel';
+import type { EditorTreeNode, SnippetPreview } from '@/components/onelink/group-create/types';
+import { computeMaxDepth, hydrateEditorNodes } from '@/components/onelink/group-create/treeUtils';
 import { computeLeafCount } from '@/lib/onelinkGroupTree';
 import type { LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
+
+const POLL_DELAY_INITIAL_MS = 2000;
+const POLL_DELAY_MAX_MS = 10000;
 
 type LinkGroupItemRecord = {
   errorMessage: string;
@@ -97,36 +103,54 @@ function getItemStatusChipColor(status: LinkGroupItemRecord['status']): 'default
   return 'default';
 }
 
-function computeTreeMaxDepth(nodes: LinkGroupTreeNode[]): number {
-  let maxDepth = 0;
+function countTotalNodes(nodes: EditorTreeNode[]): number {
+  let totalCount = 0;
 
-  const visit = (node: LinkGroupTreeNode, depth: number) => {
-    maxDepth = Math.max(maxDepth, depth);
+  const visit = (node: EditorTreeNode) => {
+    totalCount += 1;
     node.children.forEach((child) => {
-      visit(child, depth + 1);
+      visit(child);
     });
   };
 
   nodes.forEach((node) => {
-    visit(node, 1);
+    visit(node);
   });
 
-  return maxDepth;
+  return totalCount;
 }
 
-function renderTree(nodes: LinkGroupTreeNode[], depth = 0): ReactNode {
-  if (nodes.length === 0) {
-    return null;
-  }
+function buildTreePreviewSnippets(
+  nodes: EditorTreeNode[],
+  shortLinkByPathLabel: Map<string, string>,
+): SnippetPreview[] {
+  const snippets: SnippetPreview[] = [];
 
-  return nodes.map((node, index) => (
-    <Box key={ `${node.level}-${node.value}-${depth}-${index}` } sx={ { ml: depth * 1.75, py: 0.25 } }>
-      <Typography sx={ { color: 'text.primary', fontSize: 13, fontWeight: node.level === 'media_source' ? 600 : 500 } }>
-        {node.value}
-      </Typography>
-      {renderTree(node.children, depth + 1)}
-    </Box>
-  ));
+  const visit = (node: EditorTreeNode, ancestorNodeIds: string[], ancestorLabels: string[]) => {
+    const nodeIds = [...ancestorNodeIds, node.id];
+    const labels = [...ancestorLabels, node.value];
+    const pathLabel = labels.join(' > ');
+
+    if (node.children.length === 0) {
+      snippets.push({
+        fullUrl: shortLinkByPathLabel.get(pathLabel) || 'No URL yet',
+        nodeIds,
+        pathLabel,
+        payload: {},
+      });
+      return;
+    }
+
+    node.children.forEach((childNode) => {
+      visit(childNode, nodeIds, labels);
+    });
+  };
+
+  nodes.forEach((rootNode) => {
+    visit(rootNode, [], []);
+  });
+
+  return snippets;
 }
 
 /**
@@ -142,6 +166,7 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
   const [isActing, setIsActing] = useState(false);
+  const [isTreePreviewExpanded, setIsTreePreviewExpanded] = useState(true);
 
   const isRunning = detail?.status === 'running';
 
@@ -183,12 +208,54 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
       return;
     }
 
-    const timer = window.setInterval(() => {
-      void loadDetail(page);
-    }, 2000);
+    let isActive = true;
+    let timerId: number | null = null;
+    let delayMs = POLL_DELAY_INITIAL_MS;
+
+    const scheduleNext = () => {
+      if (!isActive) {
+        return;
+      }
+      timerId = window.setTimeout(tick, delayMs);
+    };
+
+    const tick = async () => {
+      if (!isActive) {
+        return;
+      }
+
+      if (document.hidden) {
+        delayMs = POLL_DELAY_MAX_MS;
+        scheduleNext();
+        return;
+      }
+
+      await loadDetail(page);
+      delayMs = Math.min(delayMs + 1000, POLL_DELAY_MAX_MS);
+      scheduleNext();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!isActive || document.hidden) {
+        return;
+      }
+
+      delayMs = POLL_DELAY_INITIAL_MS;
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+      }
+      scheduleNext();
+    };
+
+    scheduleNext();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.clearInterval(timer);
+      isActive = false;
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [isRunning, loadDetail, page]);
 
@@ -214,8 +281,28 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
     }
   }, [detail?.treeConfigJson]);
 
+  const editorTreeRoots = useMemo(
+    () => hydrateEditorNodes(parsedTree.roots),
+    [parsedTree.roots],
+  );
+  const shortLinkByPathLabel = useMemo(() => {
+    const linkByPathLabel = new Map<string, string>();
+
+    detail?.items.forEach((item) => {
+      if (item.shortLink) {
+        linkByPathLabel.set(item.pathLabel, item.shortLink);
+      }
+    });
+
+    return linkByPathLabel;
+  }, [detail?.items]);
+  const treePreviewSnippets = useMemo(
+    () => buildTreePreviewSnippets(editorTreeRoots, shortLinkByPathLabel),
+    [editorTreeRoots, shortLinkByPathLabel],
+  );
   const treeLeafCount = useMemo(() => computeLeafCount(parsedTree.roots), [parsedTree.roots]);
-  const treeMaxDepth = useMemo(() => computeTreeMaxDepth(parsedTree.roots), [parsedTree.roots]);
+  const treeMaxDepth = useMemo(() => computeMaxDepth(parsedTree.roots), [parsedTree.roots]);
+  const treeTotalNodeCount = useMemo(() => countTotalNodes(editorTreeRoots), [editorTreeRoots]);
 
   const handleRetryFailed = async () => {
     if (!detail || !canRetry) {
@@ -281,7 +368,7 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
       }
 
       setTimeout(() => {
-        window.location.href = '/links?type=link_group';
+        window.location.href = '/link-groups';
       }, 450);
     } catch {
       setActionMessage('Failed to delete link group.');
@@ -293,7 +380,7 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
   return (
     <ConsoleLayout
       actions={ (
-        <Button component={ Link } href='/links?type=link_group' sx={ { textTransform: 'none' } } variant='outlined'>
+        <Button component={ Link } href='/link-groups' sx={ { textTransform: 'none' } } variant='outlined'>
           Back to Groups
         </Button>
       ) }
@@ -344,7 +431,7 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
               <Stack direction={ { md: 'row', xs: 'column' } } spacing={ 1 } sx={ { mt: 1.75 } }>
                 <Button
                   component={ Link }
-                  href={ `/create/link-group/${encodeURIComponent(detail.id)}` }
+                  href={ `/link-groups/${encodeURIComponent(detail.id)}/edit` }
                   disabled={ isActing }
                   sx={ { textTransform: 'none' } }
                   variant='outlined'
@@ -382,43 +469,20 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
           )}
 
           {detail && (
-            <Paper
-              elevation={ 0 }
-              sx={ {
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                p: 2,
-              } }
-            >
-              <Stack spacing={ 1 }>
-                <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
-                  Tree Visualization
-                </Typography>
-                <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
-                  {`Leaf paths: ${treeLeafCount} · Max depth: ${treeMaxDepth}`}
-                </Typography>
-                {parsedTree.parseError && (
-                  <Alert severity='warning'>Failed to parse stored tree configuration.</Alert>
-                )}
-                <Box
-                  sx={ {
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    maxHeight: 280,
-                    overflowY: 'auto',
-                    p: 1.5,
-                  } }
-                >
-                  {parsedTree.roots.length > 0 ? (
-                    renderTree(parsedTree.roots)
-                  ) : (
-                    <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>No tree configuration found.</Typography>
-                  )}
-                </Box>
-              </Stack>
-            </Paper>
+            <Stack spacing={ 1 }>
+              {parsedTree.parseError && (
+                <Alert severity='warning'>Failed to parse stored tree configuration.</Alert>
+              )}
+              <TreePreviewPanel
+                leafCount={ treeLeafCount }
+                maxDepth={ treeMaxDepth }
+                nodes={ editorTreeRoots }
+                onToggleExpanded={ () => setIsTreePreviewExpanded((previous) => !previous) }
+                previewSnippets={ treePreviewSnippets }
+                totalNodeCount={ treeTotalNodeCount }
+                treePreviewExpanded={ isTreePreviewExpanded }
+              />
+            </Stack>
           )}
 
           <Paper

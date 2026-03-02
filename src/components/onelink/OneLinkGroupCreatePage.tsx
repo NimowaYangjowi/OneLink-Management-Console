@@ -4,10 +4,12 @@
 'use client';
 
 import {
+  Alert,
   Box,
   Button,
   LinearProgress,
   Paper,
+  Snackbar,
   Stack,
   Step,
   StepLabel,
@@ -27,11 +29,14 @@ import {
   generateLeafPaths,
 } from '@/lib/onelinkGroupTree';
 import {
+  buildShortLinkBaseUrl,
+  buildShortLinkPreviewUrl,
+  createShortLinkIdAllocator,
   normalizeLinkGroupShortLinkIdConfig,
   normalizeShortLinkFieldKey,
   resolveShortLinkIdBaseFromPayload,
 } from '@/lib/onelinkShortLinkId';
-import type { LinkGroupShortLinkIdConfig, LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
+import type { LinkGroupNodeLevel, LinkGroupShortLinkIdConfig, LinkGroupTreeNode } from '@/lib/onelinkGroupTypes';
 import { useSettings } from '@/lib/providers/SettingsContext';
 import BaseSetupStep from './group-create/BaseSetupStep';
 import { GROUP_CREATE_STEPS } from './group-create/constants';
@@ -52,6 +57,7 @@ import { normalizeScopePathPrefixes } from './group-create/scopeUtils';
 import {
   computeMaxDepth,
   createClientId,
+  formatLevelLabel,
   hydrateEditorNodes,
   toSerializedNodes,
 } from './group-create/treeUtils';
@@ -62,6 +68,7 @@ import type {
   EditSeedResponse,
   EditorTreeNode,
   OneLinkGroupCreatePageProps,
+  SnippetPreview,
 } from './group-create/types';
 
 const RETARGETING_PARAM_KEY = 'is_retargeting';
@@ -99,6 +106,8 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
   const [isCheckingGroupNameDuplicate, setIsCheckingGroupNameDuplicate] = useState(false);
   const [isGroupNameDuplicate, setIsGroupNameDuplicate] = useState(false);
   const [groupNameDuplicateCheckError, setGroupNameDuplicateCheckError] = useState('');
+  const [pendingDeleteNodeIds, setPendingDeleteNodeIds] = useState<string[]>([]);
+  const [pendingDeleteNodeLevel, setPendingDeleteNodeLevel] = useState<LinkGroupNodeLevel | null>(null);
 
   const isEditHydrating = isEditMode && isLoadingEditSeed;
 
@@ -112,8 +121,10 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     handleNodeChipClick,
     handleTreeEditorMouseDown,
     isNodeExpanded,
+    isNodeOnSelectedPath,
     isNodeSelected,
     lassoRect,
+    pinExpandedState,
     resetSelectionState,
     selectedChildLevel,
     selectedScopePathPrefixes,
@@ -187,6 +198,19 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     }
     return '';
   }, [brandDomain, brandDomainOptions, dismissedAutoBrandDomainTemplateId, resolvedTemplateId]);
+  const resolvedTemplateDomainHost = useMemo(() => {
+    if (!resolvedTemplateId) {
+      return '';
+    }
+    return settings.templateDomains[resolvedTemplateId]?.host ?? '';
+  }, [resolvedTemplateId, settings.templateDomains]);
+  const resolvedTreePreviewDomain = useMemo(() => {
+    const normalizedBrandDomain = resolvedBrandDomain.trim().toLowerCase();
+    if (normalizedBrandDomain) {
+      return normalizedBrandDomain;
+    }
+    return resolvedTemplateDomainHost.trim().toLowerCase();
+  }, [resolvedBrandDomain, resolvedTemplateDomainHost]);
   const {
     canRetryFailedItems,
     createdGroupId,
@@ -223,6 +247,7 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     activeTreeInputTargetLevel,
     addTreeInputValues,
     removeNode,
+    removeNodes,
     resetTreeEditorState,
     setDraft,
   } = useGroupTreeEditor({
@@ -472,6 +497,7 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     activeTreeFieldLevel,
     globalParams,
     resolvedBrandDomain,
+    resolvedTemplateDomainHost,
     resolvedTemplateId,
     roots,
     selectedTreeNodeIds,
@@ -525,20 +551,6 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
         label: SHORT_LINK_FIELD_LABELS[key] ?? `Custom Parameter (${key})`,
       }));
   }, [previewSnippets]);
-  const shortLinkFieldMissingCount = useMemo(() => {
-    if (shortLinkIdConfig.mode !== 'field') {
-      return 0;
-    }
-
-    const normalizedFieldKey = normalizeShortLinkFieldKey(shortLinkIdConfig.fieldKey);
-    if (!normalizedFieldKey) {
-      return filteredSnippets.length;
-    }
-
-    return filteredSnippets.reduce((count, snippet) => (
-      resolveShortLinkIdBaseFromPayload(snippet.payload, shortLinkIdConfig) ? count : count + 1
-    ), 0);
-  }, [filteredSnippets, shortLinkIdConfig]);
 
   const handleTemplateIdChange = useCallback((nextValue: string) => {
     setTemplateId(nextValue);
@@ -584,16 +596,100 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     });
   }, []);
 
+  const handleNodeRemove = useCallback((nodeId: string) => {
+    pinExpandedState();
+    removeNode(nodeId);
+  }, [pinExpandedState, removeNode]);
+
+  const closeBulkDeleteConfirm = useCallback(() => {
+    setPendingDeleteNodeIds([]);
+    setPendingDeleteNodeLevel(null);
+  }, []);
+
+  const openBulkDeleteConfirm = useCallback((nodeIds: string[], nodeLevel: LinkGroupNodeLevel | null) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+
+    setPendingDeleteNodeIds(nodeIds);
+    setPendingDeleteNodeLevel(nodeLevel);
+  }, []);
+
+  const confirmBulkDelete = useCallback(() => {
+    if (pendingDeleteNodeIds.length === 0) {
+      closeBulkDeleteConfirm();
+      return;
+    }
+
+    pinExpandedState();
+    removeNodes(pendingDeleteNodeIds);
+    closeBulkDeleteConfirm();
+  }, [
+    closeBulkDeleteConfirm,
+    pendingDeleteNodeIds,
+    pinExpandedState,
+    removeNodes,
+  ]);
+
+  useEffect(() => {
+    if (activeStep !== 1) {
+      closeBulkDeleteConfirm();
+      return;
+    }
+
+    const handleDeleteShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.repeat) {
+        return;
+      }
+
+      if (event.key !== 'Delete' && event.key !== 'Backspace') {
+        return;
+      }
+
+      if (event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      const targetElement = event.target;
+      if (
+        targetElement instanceof HTMLElement
+        && targetElement.closest('input,textarea,[contenteditable="true"],[role="textbox"]')
+      ) {
+        return;
+      }
+
+      if (selectedTreeNodeIds.length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      openBulkDeleteConfirm(selectedTreeNodeIds, selectedTreeNodeLevel);
+    };
+
+    window.addEventListener('keydown', handleDeleteShortcut);
+    return () => {
+      window.removeEventListener('keydown', handleDeleteShortcut);
+    };
+  }, [
+    activeStep,
+    closeBulkDeleteConfirm,
+    openBulkDeleteConfirm,
+    selectedTreeNodeIds,
+    selectedTreeNodeLevel,
+  ]);
+
   const nodeListProps = useMemo<Omit<NodeListProps, 'nodes'>>(() => ({
     isNodeExpanded,
+    isNodeOnSelectedPath,
     isNodeSelected,
     onChipClick: handleNodeChipClick,
-    removeNode,
+    removeNode: handleNodeRemove,
   }), [
+    handleNodeRemove,
     handleNodeChipClick,
     isNodeExpanded,
+    isNodeOnSelectedPath,
     isNodeSelected,
-    removeNode,
   ]);
   const globalParametersStepProps = useMemo(() => ({
     additionalParamKeyOptions,
@@ -627,7 +723,6 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     updateParamRow,
   ]);
   const shortLinkIdStepProps = useMemo(() => ({
-    fieldMissingCount: shortLinkFieldMissingCount,
     fieldOptions: shortLinkFieldOptions,
     leafPathCount: leafPaths.length,
     onSelectFieldKey: handleShortLinkFieldKeyChange,
@@ -637,29 +732,60 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     handleShortLinkFieldKeyChange,
     handleShortLinkModeChange,
     leafPaths.length,
-    shortLinkFieldMissingCount,
     shortLinkFieldOptions,
     shortLinkIdConfig,
   ]);
+  const treePreviewSnippets = useMemo<SnippetPreview[]>(() => {
+    if (activeStep !== 2) {
+      return filteredSnippets;
+    }
+
+    const allocator = createShortLinkIdAllocator();
+    const baseShortLinkUrl = buildShortLinkBaseUrl(resolvedTemplateId, resolvedTreePreviewDomain);
+
+    return filteredSnippets.map((snippet) => {
+      const shortLinkIdBase = resolveShortLinkIdBaseFromPayload(snippet.payload, shortLinkIdConfig);
+      const shortLinkId = shortLinkIdBase ? allocator.allocate(shortLinkIdBase) : null;
+
+      return {
+        ...snippet,
+        fullUrl: buildShortLinkPreviewUrl(baseShortLinkUrl, shortLinkId),
+      };
+    });
+  }, [
+    activeStep,
+    filteredSnippets,
+    resolvedTemplateId,
+    resolvedTreePreviewDomain,
+    shortLinkIdConfig,
+  ]);
+  const pendingDeleteCount = pendingDeleteNodeIds.length;
+  const pendingDeleteTargetLabel = pendingDeleteNodeLevel
+    ? `${formatLevelLabel(pendingDeleteNodeLevel)} group`
+    : 'group';
+  const bulkDeleteMessage = pendingDeleteCount <= 1
+    ? `Delete selected ${pendingDeleteTargetLabel}?`
+    : `Delete ${pendingDeleteCount} selected ${pendingDeleteTargetLabel}s?`;
 
   return (
-    <ConsoleLayout
-      actions={ (
-        <Button component={ Link } href='/links?type=link_group' sx={ { textTransform: 'none' } } variant='outlined'>
-          View Groups
-        </Button>
-      ) }
-      title={ isEditMode ? 'Edit Link Group' : 'Create Link Group' }
-    >
-      <Box sx={ { maxWidth: 1400, mx: 'auto', px: { md: 4, xs: 2 }, py: 3.5, width: '100%' } }>
-        <Stack spacing={ 2 }>
-          <Stepper activeStep={ activeStep } alternativeLabel>
-            {GROUP_CREATE_STEPS.map((label) => (
-              <Step key={ label }>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+    <>
+      <ConsoleLayout
+        actions={ (
+          <Button component={ Link } href='/link-groups' sx={ { textTransform: 'none' } } variant='outlined'>
+            View Groups
+          </Button>
+        ) }
+        title={ isEditMode ? 'Edit Link Group' : 'Create Link Group' }
+      >
+        <Box sx={ { maxWidth: 1400, mx: 'auto', px: { md: 4, xs: 2 }, py: 3.5, width: '100%' } }>
+          <Stack spacing={ 2 }>
+            <Stepper activeStep={ activeStep } alternativeLabel>
+              {GROUP_CREATE_STEPS.map((label) => (
+                <Step key={ label }>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
 
           <GroupCreateAlerts
             createdGroupId={ createdGroupId }
@@ -809,6 +935,8 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
                     borderColor: 'divider',
                     borderRadius: 1,
                     flex: { md: '1 1 40%', xs: '1 1 auto' },
+                    height: { md: 520, xs: 'auto' },
+                    maxHeight: { md: 520, xs: 'none' },
                     maxWidth: { md: '40%', xs: '100%' },
                     minWidth: 0,
                     minHeight: 520,
@@ -822,8 +950,9 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
                 </Paper>
               ) : activeStep === 2 ? (
                 <ShortLinkTreePreviewPanel
+                  editGroupId={ editGroupId }
                   previewSnippets={ filteredSnippets }
-                  resolvedBrandDomain={ resolvedBrandDomain }
+                  resolvedPreviewDomain={ resolvedTreePreviewDomain }
                   resolvedTemplateId={ resolvedTemplateId }
                   shortLinkIdConfig={ shortLinkIdConfig }
                 />
@@ -844,22 +973,59 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
               )}
             </Stack>
 
-            {activeStep !== 2 && (
-              <TreePreviewPanel
-                leafCount={ leafCount }
-                maxDepth={ maxDepth }
-                nodes={ roots }
-                onToggleExpanded={ () => setIsTreePreviewExpanded((previous) => !previous) }
-                previewSnippets={ filteredSnippets }
-                totalNodeCount={ allTreeNodes.length }
-                treePreviewExpanded={ isTreePreviewExpanded }
-              />
-            )}
+            <TreePreviewPanel
+              leafCount={ leafCount }
+              maxDepth={ maxDepth }
+              nodes={ roots }
+              onToggleExpanded={ () => setIsTreePreviewExpanded((previous) => !previous) }
+              previewSnippets={ treePreviewSnippets }
+              totalNodeCount={ allTreeNodes.length }
+              treePreviewExpanded={ isTreePreviewExpanded }
+            />
           </Stack>
 
-        </Stack>
-      </Box>
-    </ConsoleLayout>
+          </Stack>
+        </Box>
+      </ConsoleLayout>
+      <Snackbar
+        anchorOrigin={ { horizontal: 'center', vertical: 'bottom' } }
+        onClose={ (_, reason) => {
+          if (reason === 'clickaway') {
+            return;
+          }
+          closeBulkDeleteConfirm();
+        } }
+        open={ pendingDeleteCount > 0 }
+      >
+        <Alert
+          action={ (
+            <Stack direction='row' spacing={ 1 }>
+              <Button
+                color='inherit'
+                onClick={ closeBulkDeleteConfirm }
+                size='small'
+                sx={ { minWidth: 0, textTransform: 'none' } }
+              >
+                Cancel
+              </Button>
+              <Button
+                color='error'
+                onClick={ confirmBulkDelete }
+                size='small'
+                sx={ { minWidth: 0, textTransform: 'none' } }
+                variant='contained'
+              >
+                Confirm
+              </Button>
+            </Stack>
+          ) }
+          severity='warning'
+          sx={ { alignItems: 'center', width: '100%' } }
+        >
+          {bulkDeleteMessage}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }
 

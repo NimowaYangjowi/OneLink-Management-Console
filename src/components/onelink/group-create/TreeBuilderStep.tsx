@@ -5,14 +5,16 @@ import {
   Alert,
   Autocomplete,
   Button,
-  ClickAwayListener,
+  IconButton,
+  Popover,
   Stack,
   TextField,
   Typography,
   type AutocompleteChangeReason,
 } from '@mui/material';
-import type { ClipboardEvent, KeyboardEvent } from 'react';
-import { useRef, useState } from 'react';
+import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
+import type { ClipboardEvent, KeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { LinkGroupNodeLevel } from '@/lib/onelinkGroupTypes';
 import { formatLevelLabel } from './treeUtils';
 import NodeList, { type NodeListProps } from './NodeList';
@@ -44,8 +46,9 @@ function TreeBuilderStep({
   selectedNodeLevel,
 }: TreeBuilderStepProps) {
   const SPREADSHEET_DELIMITER_REGEX = /[\n\r\t]/;
-  const skipRootSyncCountRef = useRef(0);
   const [isPresetDropdownOpen, setIsPresetDropdownOpen] = useState(false);
+  const [helpAnchorElement, setHelpAnchorElement] = useState<HTMLElement | null>(null);
+  const helpCloseTimeoutRef = useRef<number | null>(null);
   const selectedLevelLabel = selectedNodeLevel ? formatLevelLabel(selectedNodeLevel) : '';
   const inputTargetLabel = inputTargetLevel ? formatLevelLabel(inputTargetLevel) : '';
   const isLeafSelection = selectedNodeCount > 0 && !inputTargetLevel;
@@ -74,37 +77,20 @@ function TreeBuilderStep({
     event: KeyboardEvent<HTMLElement>,
     addValues: (rawInputOverride?: string) => void,
     draftValue: string,
-    skipSyncCountRef: { current: number },
   ) => {
     if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
       return;
     }
 
     event.preventDefault();
-    skipSyncCountRef.current = 2;
     addValues(draftValue);
-  };
-
-  const shouldSkipSync = (skipSyncCountRef: { current: number }) => {
-    if (skipSyncCountRef.current < 1) {
-      return false;
-    }
-
-    skipSyncCountRef.current -= 1;
-    return true;
   };
 
   const handlePresetChange = (
     nextValue: string | null,
     reason: AutocompleteChangeReason,
-    skipSyncCountRef: { current: number },
   ) => {
-    if (shouldSkipSync(skipSyncCountRef)) {
-      return;
-    }
-
     if (reason === 'selectOption' && nextValue) {
-      skipSyncCountRef.current = 2;
       addCurrentLevelValues(nextValue);
       setIsPresetDropdownOpen(false);
       return;
@@ -112,76 +98,149 @@ function TreeBuilderStep({
 
     onInputDraftChange(nextValue ?? '');
   };
+  const clearHelpCloseTimeout = () => {
+    if (helpCloseTimeoutRef.current !== null) {
+      window.clearTimeout(helpCloseTimeoutRef.current);
+      helpCloseTimeoutRef.current = null;
+    }
+  };
+  const openHelpPopover = (event: ReactMouseEvent<HTMLElement>) => {
+    clearHelpCloseTimeout();
+    setHelpAnchorElement(event.currentTarget);
+  };
+  const closeHelpPopover = () => {
+    clearHelpCloseTimeout();
+    setHelpAnchorElement(null);
+  };
+  const scheduleHelpPopoverClose = () => {
+    clearHelpCloseTimeout();
+    helpCloseTimeoutRef.current = window.setTimeout(() => {
+      setHelpAnchorElement(null);
+    }, 120);
+  };
+
+  useEffect(() => () => {
+    if (helpCloseTimeoutRef.current !== null) {
+      window.clearTimeout(helpCloseTimeoutRef.current);
+      helpCloseTimeoutRef.current = null;
+    }
+  }, []);
 
   return (
     <Stack spacing={ 1.5 }>
       <Stack spacing={ 0.5 }>
-        <Typography sx={ { color: 'text.primary', fontSize: 18, fontWeight: 700 } }>
-          Build Tree
-        </Typography>
+        <Stack alignItems='center' direction='row' spacing={ 0.35 }>
+          <Typography sx={ { color: 'text.primary', fontSize: 18, fontWeight: 700 } }>
+            Build Tree
+          </Typography>
+          <IconButton
+            aria-label='Build tree usage help'
+            onMouseEnter={ openHelpPopover }
+            onMouseLeave={ scheduleHelpPopoverClose }
+            size='small'
+            sx={ { color: 'text.secondary', p: 0.5 } }
+          >
+            <HelpOutlineRoundedIcon fontSize='small' />
+          </IconButton>
+        </Stack>
         <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
           Add media sources and expand campaign levels to define link generation paths.
         </Typography>
       </Stack>
+      <Popover
+        PaperProps={ {
+          onMouseEnter: clearHelpCloseTimeout,
+          onMouseLeave: scheduleHelpPopoverClose,
+          sx: {
+            maxWidth: 320,
+            p: 1.25,
+            pointerEvents: 'auto',
+          },
+        } }
+        anchorEl={ helpAnchorElement }
+        anchorOrigin={ { horizontal: 'right', vertical: 'bottom' } }
+        disableRestoreFocus
+        onClose={ closeHelpPopover }
+        open={ Boolean(helpAnchorElement) }
+        sx={ { pointerEvents: 'none' } }
+        transformOrigin={ { horizontal: 'right', vertical: 'top' } }
+      >
+        <Stack spacing={ 0.5 }>
+          <Typography sx={ { color: 'text.primary', fontSize: 12, fontWeight: 700 } }>
+            Build Tree Tips
+          </Typography>
+          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+            1. Place cursor in the field and paste; values are auto-split and added.
+          </Typography>
+          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+            2. Add Media Source values first.
+          </Typography>
+          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+            3. Select chips, then add the next level.
+          </Typography>
+          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+            4. Shift+Click: range select in one level.
+          </Typography>
+          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+            5. Drag blank area: lasso select.
+          </Typography>
+          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+            6. Shift/Alt/Cmd(Ctrl)+Drag: add/remove/toggle.
+          </Typography>
+          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+            7. Delete with X twice to confirm.
+          </Typography>
+        </Stack>
+      </Popover>
       <Stack
         alignItems={ { md: 'flex-start', xs: 'stretch' } }
         direction={ { md: 'row', xs: 'column' } }
         spacing={ 1 }
       >
-        <ClickAwayListener
-          mouseEvent='onMouseDown'
-          onClickAway={ () => {
+        <Autocomplete<string, false, false, true>
+          disablePortal
+          freeSolo
+          disabled={ isLeafSelection }
+          fullWidth
+          inputValue={ inputDraftValue }
+          onChange={ (_, nextValue, reason) => handlePresetChange(nextValue, reason) }
+          onClose={ () => setIsPresetDropdownOpen(false) }
+          onInputChange={ (_, inputValue, reason) => {
+            if (reason === 'reset') {
+              return;
+            }
+            onInputDraftChange(inputValue);
+          } }
+          onKeyDown={ (event) => handleAddOnEnter(event, addCurrentLevelValues, inputDraftValue) }
+          onOpen={ () => {
+            if (isLeafSelection) {
+              return;
+            }
+            setIsPresetDropdownOpen(true);
+          } }
+          onPaste={ (event) => {
+            const nextValue = buildValueWithPastedText(event);
+            if (!nextValue) {
+              return;
+            }
+
+            event.preventDefault();
+            addCurrentLevelValues(nextValue);
             setIsPresetDropdownOpen(false);
           } }
-        >
-          <Autocomplete<string, false, false, true>
-            disablePortal
-            freeSolo
-            disabled={ isLeafSelection }
-            fullWidth
-            inputValue={ inputDraftValue }
-            onChange={ (_, nextValue, reason) => handlePresetChange(nextValue, reason, skipRootSyncCountRef) }
-            onClose={ () => setIsPresetDropdownOpen(false) }
-            onInputChange={ (_, inputValue, reason) => {
-              if (shouldSkipSync(skipRootSyncCountRef)) {
-                return;
-              }
-              if (reason === 'reset') {
-                return;
-              }
-              onInputDraftChange(inputValue);
-            } }
-            onKeyDown={ (event) => handleAddOnEnter(event, addCurrentLevelValues, inputDraftValue, skipRootSyncCountRef) }
-            onOpen={ () => {
-              if (isLeafSelection) {
-                return;
-              }
-              setIsPresetDropdownOpen(true);
-            } }
-            onPaste={ (event) => {
-              const nextValue = buildValueWithPastedText(event);
-              if (!nextValue) {
-                return;
-              }
-
-              event.preventDefault();
-              skipRootSyncCountRef.current = 2;
-              addCurrentLevelValues(nextValue);
-            } }
-            open={ !isLeafSelection && isPresetDropdownOpen }
-            options={ inputPresetOptions }
-            renderInput={ (params) => (
-              <TextField
-                { ...params }
-                helperText={ helperText }
-                label={ isLeafSelection ? `Add ${selectedLevelLabel}` : `Add ${inputTargetLabel}` }
-                onFocus={ onInputFieldFocus }
-                size='small'
-              />
-            ) }
-            value={ null }
-          />
-        </ClickAwayListener>
+          open={ !isLeafSelection && isPresetDropdownOpen }
+          options={ inputPresetOptions }
+          renderInput={ (params) => (
+            <TextField
+              { ...params }
+              helperText={ helperText }
+              label={ isLeafSelection ? `Add ${selectedLevelLabel}` : `Add ${inputTargetLabel}` }
+              onFocus={ onInputFieldFocus }
+              size='small'
+            />
+          ) }
+          value={ null }
+        />
         <Button
           disabled={ isLeafSelection }
           onClick={ () => addCurrentLevelValues() }

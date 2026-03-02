@@ -150,6 +150,20 @@ export function useGroupTreeSelection({ activeStep, roots }: UseGroupTreeSelecti
     () => new Set(normalizedSelectedTreeNodeIds),
     [normalizedSelectedTreeNodeIds],
   );
+  const selectedPathNodeSet = useMemo(() => {
+    const ancestorNodeIds = new Set<string>();
+
+    normalizedSelectedTreeNodeIds.forEach((nodeId) => {
+      let currentParentId = parentNodeById.get(nodeId) ?? null;
+
+      while (currentParentId) {
+        ancestorNodeIds.add(currentParentId);
+        currentParentId = parentNodeById.get(currentParentId) ?? null;
+      }
+    });
+
+    return ancestorNodeIds;
+  }, [normalizedSelectedTreeNodeIds, parentNodeById]);
 
   const selectedScopePathPrefixes = useMemo(
     () => normalizeScopePathPrefixes(selectedTreeNodes.map((node) => {
@@ -533,16 +547,28 @@ export function useGroupTreeSelection({ activeStep, roots }: UseGroupTreeSelecti
   }, [expandedTreeNodeSet, lassoFrozenExpandedNodeSet]);
 
   const isNodeSelected = useCallback((nodeId: string) => selectedTreeNodeSet.has(nodeId), [selectedTreeNodeSet]);
+  const isNodeOnSelectedPath = useCallback((nodeId: string) => selectedPathNodeSet.has(nodeId), [selectedPathNodeSet]);
+
+  const pinExpandedState = useCallback(() => {
+    const pinnedExpandedNodeIds = Array.from(expandedTreeNodeSet);
+    setFallbackExpandedNodeIds((previous) => (
+      areStringArraysEqual(previous, pinnedExpandedNodeIds) ? previous : pinnedExpandedNodeIds
+    ));
+  }, [expandedTreeNodeSet]);
 
   const resetSelectionState = useCallback(() => {
-    commitSelection([], null, '');
+    setSelectedTreeNodeIds([]);
+    selectedTreeNodeIdsRef.current = [];
+    setActiveTreeFieldLevel(null);
+    setSelectionAnchorNodeId('');
+    selectionAnchorNodeIdRef.current = '';
     setFallbackExpandedNodeIds([]);
     setLassoFrozenExpandedNodeIds([]);
     setLassoRect(null);
     lassoSelectionStateRef.current.active = false;
     lassoSelectionStateRef.current.engaged = false;
     stopLassoAutoScroll();
-  }, [commitSelection, stopLassoAutoScroll]);
+  }, [stopLassoAutoScroll]);
 
   return {
     activeTreeFieldLevel,
@@ -550,8 +576,10 @@ export function useGroupTreeSelection({ activeStep, roots }: UseGroupTreeSelecti
     handleNodeChipClick,
     handleTreeEditorMouseDown,
     isNodeExpanded,
+    isNodeOnSelectedPath,
     isNodeSelected,
     lassoRect: activeStep === 1 ? lassoRect : null,
+    pinExpandedState,
     resetSelectionState,
     selectedChildLevel,
     selectedScopePathPrefixes,
