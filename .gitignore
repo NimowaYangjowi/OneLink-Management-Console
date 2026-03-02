@@ -64,3 +64,6 @@ test-results/
 
 # Temporary generated images
 ChatGPT_Image_*.png
+
+# Local planning/developer notes
+tasks/
