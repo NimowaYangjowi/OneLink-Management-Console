@@ -114,7 +114,63 @@ export interface TemplateDomainInfo {
   subdomain: string;
 }
 
+/** Fields supported by naming convention rules. */
+export type NamingConventionTargetField = 'pid' | 'c' | 'af_adset' | 'af_ad';
+
+/** Allowed delimiter values in naming rules. */
+export type NamingDelimiter = '_' | '-';
+
+/** Input mode of each naming slot. */
+export type SlotInputMode = 'select' | 'text' | 'regex';
+
+/** Enforcement mode for naming validation. */
+export type NamingRuleEnforcementMode = 'warn' | 'strict';
+
+/** Rule definition for one slot in a naming format. */
+export interface NamingConventionSlotRule {
+  allowedValues: string[];
+  id: string;
+  label: string;
+  maxLength: number;
+  mode: SlotInputMode;
+  order: number;
+  pattern: string;
+  required: boolean;
+}
+
+/** Rule definition for one attribution field. */
+export interface NamingConventionRule {
+  delimiter: NamingDelimiter;
+  enabled: boolean;
+  field: NamingConventionTargetField;
+  slots: NamingConventionSlotRule[];
+}
+
+/** Full naming convention settings container. */
+export interface NamingConventionConfig {
+  enforcementMode: NamingRuleEnforcementMode;
+  rules: Partial<Record<NamingConventionTargetField, NamingConventionRule>>;
+}
+
+/** All target fields in display order. */
+export const NAMING_CONVENTION_TARGET_FIELDS: NamingConventionTargetField[] = ['c', 'pid', 'af_adset', 'af_ad'];
+
+/** Human-readable labels for naming target fields. */
+export const NAMING_CONVENTION_TARGET_FIELD_LABELS: Record<NamingConventionTargetField, string> = {
+  c: 'Campaign (c)',
+  pid: 'Media Source (pid)',
+  af_adset: 'Ad Set (af_adset)',
+  af_ad: 'Ad Name (af_ad)',
+};
+
+/** Human-readable labels for naming enforcement modes. */
+export const NAMING_RULE_ENFORCEMENT_MODE_LABELS: Record<NamingRuleEnforcementMode, string> = {
+  warn: 'Warn only',
+  strict: 'Strict reject',
+};
+
 export interface SettingsState {
+  namingConvention: NamingConventionConfig;
   templateIds: string[];
   templateDomains: Record<string, TemplateDomainInfo>;
   templateBrandedDomains: Record<string, string[]>;
@@ -126,6 +182,10 @@ export interface SettingsState {
  */
 export function createInitialSettingsState(): SettingsState {
   return {
+    namingConvention: {
+      enforcementMode: 'warn',
+      rules: {},
+    },
     templateIds: [],
     templateDomains: {},
     templateBrandedDomains: {},
@@ -321,6 +381,243 @@ export function sanitizePresets(presets: unknown): Record<PresetField, string[]>
   return defaultPresets;
 }
 
+const NAMING_SLOT_MAX_COUNT = 12;
+const NAMING_SLOT_MAX_LENGTH_DEFAULT = 50;
+const NAMING_SLOT_MAX_LENGTH_MAX = 100;
+const NAMING_SLOT_MAX_LENGTH_MIN = 1;
+const NAMING_SLOT_MODES: SlotInputMode[] = ['select', 'text', 'regex'];
+const NAMING_DELIMITERS: NamingDelimiter[] = ['_', '-'];
+const NAMING_ENFORCEMENT_MODES: NamingRuleEnforcementMode[] = ['warn', 'strict'];
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function toNumber(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return value;
+}
+
+function toNamingDelimiter(value: unknown): NamingDelimiter {
+  if (typeof value !== 'string') {
+    return '_';
+  }
+  return NAMING_DELIMITERS.includes(value as NamingDelimiter) ? (value as NamingDelimiter) : '_';
+}
+
+function toSlotInputMode(value: unknown): SlotInputMode {
+  if (typeof value !== 'string') {
+    return 'select';
+  }
+  return NAMING_SLOT_MODES.includes(value as SlotInputMode) ? (value as SlotInputMode) : 'select';
+}
+
+function toNamingEnforcementMode(value: unknown): NamingRuleEnforcementMode {
+  if (typeof value !== 'string') {
+    return 'warn';
+  }
+  return NAMING_ENFORCEMENT_MODES.includes(value as NamingRuleEnforcementMode)
+    ? (value as NamingRuleEnforcementMode)
+    : 'warn';
+}
+
+function sanitizeNamingSlotLabel(value: unknown, order: number): string {
+  if (typeof value !== 'string') {
+    return `Slot ${order}`;
+  }
+
+  const normalized = value.trim().slice(0, 60);
+  return normalized || `Slot ${order}`;
+}
+
+function sanitizeNamingSlotId(value: unknown, order: number): string {
+  if (typeof value !== 'string') {
+    return `slot_${order}`;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return `slot_${order}`;
+  }
+
+  const safeId = normalized
+    .replaceAll(/[^a-z0-9_-]/g, '_')
+    .replaceAll(/_{2,}/g, '_')
+    .replaceAll(/^_+|_+$/g, '');
+
+  return safeId || `slot_${order}`;
+}
+
+function sanitizeNamingAllowedValues(values: unknown, delimiter: NamingDelimiter): string[] {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  const uniqueValues = new Set<string>();
+  values.forEach((value) => {
+    if (typeof value !== 'string') {
+      return;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (!normalized || normalized.includes(delimiter)) {
+      return;
+    }
+
+    uniqueValues.add(normalized);
+  });
+
+  return [...uniqueValues];
+}
+
+function sanitizeNamingPattern(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const pattern = value.trim().slice(0, 300);
+  if (!pattern) {
+    return '';
+  }
+
+  try {
+    new RegExp(pattern);
+    return pattern;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * sanitizeNamingConventionSlotRule - Normalizes slot-level naming rule values.
+ */
+export function sanitizeNamingConventionSlotRule(
+  slot: unknown,
+  delimiter: NamingDelimiter,
+  fallbackOrder: number,
+): NamingConventionSlotRule {
+  const candidate = slot && typeof slot === 'object'
+    ? (slot as Partial<NamingConventionSlotRule>)
+    : {};
+
+  const order = clamp(
+    Math.floor(toNumber(candidate.order, fallbackOrder)),
+    NAMING_SLOT_MAX_LENGTH_MIN,
+    NAMING_SLOT_MAX_COUNT,
+  );
+  const mode = toSlotInputMode(candidate.mode);
+
+  return {
+    allowedValues: mode === 'select' ? sanitizeNamingAllowedValues(candidate.allowedValues, delimiter) : [],
+    id: sanitizeNamingSlotId(candidate.id, order),
+    label: sanitizeNamingSlotLabel(candidate.label, order),
+    maxLength: clamp(
+      Math.floor(toNumber(candidate.maxLength, NAMING_SLOT_MAX_LENGTH_DEFAULT)),
+      NAMING_SLOT_MAX_LENGTH_MIN,
+      NAMING_SLOT_MAX_LENGTH_MAX,
+    ),
+    mode,
+    order,
+    pattern: mode === 'regex' ? sanitizeNamingPattern(candidate.pattern) : '',
+    required: Boolean(candidate.required),
+  };
+}
+
+/**
+ * sanitizeNamingConventionRule - Normalizes field-level naming rule values.
+ */
+export function sanitizeNamingConventionRule(
+  rule: unknown,
+  field: NamingConventionTargetField,
+): NamingConventionRule {
+  const candidate = rule && typeof rule === 'object'
+    ? (rule as Partial<NamingConventionRule>)
+    : {};
+  const delimiter = toNamingDelimiter(candidate.delimiter);
+  const rawSlots = Array.isArray(candidate.slots) ? candidate.slots : [];
+  const dedupedSlotIds = new Set<string>();
+
+  const sanitizedSlots = rawSlots
+    .slice(0, NAMING_SLOT_MAX_COUNT)
+    .map((slot, index) => sanitizeNamingConventionSlotRule(slot, delimiter, index + 1))
+    .sort((a, b) => a.order - b.order)
+    .map((slot, index) => {
+      const order = index + 1;
+      const baseId = sanitizeNamingSlotId(slot.id, order);
+      let uniqueId = baseId;
+      let duplicateIndex = 2;
+
+      while (dedupedSlotIds.has(uniqueId)) {
+        uniqueId = `${baseId}_${duplicateIndex}`;
+        duplicateIndex += 1;
+      }
+      dedupedSlotIds.add(uniqueId);
+
+      return {
+        ...slot,
+        id: uniqueId,
+        label: sanitizeNamingSlotLabel(slot.label, order),
+        order,
+      };
+    });
+
+  return {
+    delimiter,
+    enabled: Boolean(candidate.enabled),
+    field,
+    slots: sanitizedSlots,
+  };
+}
+
+/**
+ * sanitizeNamingConventionRules - Normalizes naming rules map by supported field keys.
+ */
+export function sanitizeNamingConventionRules(
+  rules: unknown,
+): Partial<Record<NamingConventionTargetField, NamingConventionRule>> {
+  if (!rules || typeof rules !== 'object') {
+    return {};
+  }
+
+  const sanitizedRules: Partial<Record<NamingConventionTargetField, NamingConventionRule>> = {};
+  NAMING_CONVENTION_TARGET_FIELDS.forEach((field) => {
+    const rawRule = (rules as Partial<Record<NamingConventionTargetField, unknown>>)[field];
+    if (!rawRule || typeof rawRule !== 'object') {
+      return;
+    }
+
+    sanitizedRules[field] = sanitizeNamingConventionRule(rawRule, field);
+  });
+
+  return sanitizedRules;
+}
+
+/**
+ * sanitizeNamingConventionConfig - Normalizes naming convention settings.
+ */
+export function sanitizeNamingConventionConfig(
+  config: unknown,
+  legacyRules?: unknown,
+): NamingConventionConfig {
+  if (!config || typeof config !== 'object') {
+    return {
+      enforcementMode: 'warn',
+      rules: sanitizeNamingConventionRules(legacyRules),
+    };
+  }
+
+  const candidate = config as Partial<NamingConventionConfig>;
+  const rawRules = candidate.rules ?? legacyRules;
+
+  return {
+    enforcementMode: toNamingEnforcementMode(candidate.enforcementMode),
+    rules: sanitizeNamingConventionRules(rawRules),
+  };
+}
+
 /**
  * sanitizeSettingsState - Ensures incoming unknown data matches SettingsState.
  */
@@ -333,6 +630,10 @@ export function sanitizeSettingsState(state: unknown): SettingsState {
   const templateIds = sanitizeTemplateIds(partialState.templateIds);
 
   return {
+    namingConvention: sanitizeNamingConventionConfig(
+      (partialState as Partial<{ namingConvention: unknown }>).namingConvention,
+      (partialState as Partial<{ namingConventionRules: unknown }>).namingConventionRules,
+    ),
     templateIds,
     templateDomains: sanitizeTemplateDomains(partialState.templateDomains),
     templateBrandedDomains: sanitizeTemplateBrandedDomains(

@@ -1,6 +1,7 @@
 /**
  * Shared type definitions for the OneLinkStitchedPage component tree.
  */
+import type { NamingConventionValidationError } from '@/lib/namingConvention';
 import type { OneLinkCreationType, OneLinkRecord } from '@/lib/onelinkLinksSchema';
 
 export type ParameterRow = {
@@ -29,4 +30,5 @@ export type OneLinkDetailResponse = {
 export type OneLinkUpdateResponse = {
   error?: string;
   record?: OneLinkRecord;
+  warnings?: NamingConventionValidationError[];
 };

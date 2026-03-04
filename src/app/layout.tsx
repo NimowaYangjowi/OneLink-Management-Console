@@ -6,6 +6,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import ThemeProvider from '@/lib/providers/ThemeProvider';
+import { loadSettings } from '@/lib/settingsStore';
 import './globals.css';
 
 const inter = Inter({
@@ -25,10 +26,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const initialSettings = loadSettings();
+
   return (
     <html lang="en" className={ inter.variable } suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <ThemeProvider>
+        <ThemeProvider initialSettings={ initialSettings }>
           { children }
         </ThemeProvider>
       </body>

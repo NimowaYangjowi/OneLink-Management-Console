@@ -24,6 +24,7 @@ pnpm-debug.log*
 
 # Claude Code
 CLAUDE.local.md
+.claude/settings.local.json
 
 # Editor
 .vscode/*
@@ -61,6 +62,9 @@ test-results/
 
 # Local tool runtime state
 .cursor/worktrees.json
+
+# Local planning/developer notes
+tasks/
 
 # Temporary generated images
 ChatGPT_Image_*.png

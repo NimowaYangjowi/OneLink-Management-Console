@@ -131,7 +131,7 @@ export function validateOneLinkRedirectUrl(
   return { valid: true };
 }
 
-function sanitizeOneLinkData(value: unknown): { error?: string; value: Record<string, string> } {
+export function sanitizeOneLinkData(value: unknown): { error?: string; value: Record<string, string> } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { error: 'OneLink data is invalid.', value: {} };
   }

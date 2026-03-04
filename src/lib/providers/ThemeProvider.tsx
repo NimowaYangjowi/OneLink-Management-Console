@@ -11,6 +11,7 @@ import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import defaultTheme from '@/styles/themes/default';
 import { SettingsProvider } from '@/lib/providers/SettingsContext';
+import type { SettingsState } from '@/lib/settingsSchema';
 
 /**
  * ThemeProvider
@@ -23,12 +24,18 @@ import { SettingsProvider } from '@/lib/providers/SettingsContext';
  *   <App />
  * </ThemeProvider>
  */
-function ThemeProvider({ children }: { children: React.ReactNode }) {
+function ThemeProvider({
+  children,
+  initialSettings,
+}: {
+  children: React.ReactNode;
+  initialSettings: SettingsState;
+}) {
   return (
     <AppRouterCacheProvider options={ { enableCssLayer: true } }>
       <MuiThemeProvider theme={ defaultTheme }>
         <CssBaseline />
-        <SettingsProvider>
+        <SettingsProvider initialSettings={ initialSettings }>
           { children }
         </SettingsProvider>
       </MuiThemeProvider>

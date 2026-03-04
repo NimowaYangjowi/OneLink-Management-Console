@@ -6,10 +6,9 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from 'react
 import type { LinkGroupNodeLevel } from '@/lib/onelinkGroupTypes';
 import {
   appendUniqueChildren,
-  countDescendants,
-  findNodeById,
   insertChildrenUnderNode,
   removeNodeById,
+  removeNodesByIds,
 } from '@/components/onelink/group-create/treeUtils';
 import type { EditorTreeNode } from '@/components/onelink/group-create/types';
 import { parseMultiValueInput } from '@/lib/onelinkGroupTree';
@@ -112,21 +111,12 @@ export function useGroupTreeEditor({
   ]);
 
   const removeNode = useCallback((nodeId: string) => {
-    const targetNode = findNodeById(roots, nodeId);
-    if (targetNode) {
-      const descendantCount = countDescendants(targetNode);
-      if (descendantCount > 0) {
-        const confirmed = window.confirm(
-          `Delete ${targetNode.value} and its ${descendantCount} child node${descendantCount > 1 ? 's' : ''}?`,
-        );
-        if (!confirmed) {
-          return;
-        }
-      }
-    }
-
     setRoots((previous) => removeNodeById(previous, nodeId));
-  }, [roots, setRoots]);
+  }, [setRoots]);
+
+  const removeNodes = useCallback((nodeIds: string[]) => {
+    setRoots((previous) => removeNodesByIds(previous, nodeIds));
+  }, [setRoots]);
 
   const getPresetOptionsForLevel = useCallback((level: LinkGroupNodeLevel): string[] => {
     if (level === 'media_source') {
@@ -172,6 +162,7 @@ export function useGroupTreeEditor({
     activeTreeInputTargetLevel,
     addTreeInputValues,
     removeNode,
+    removeNodes,
     resetTreeEditorState,
     setDraft,
   };

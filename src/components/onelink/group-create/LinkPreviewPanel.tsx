@@ -83,6 +83,8 @@ function LinkPreviewPanel({
           borderColor: 'divider',
           borderRadius: 1,
           flex: { md: '1 1 40%', xs: '1 1 auto' },
+          height: { md: 520, xs: 'auto' },
+          maxHeight: { md: 520, xs: 'none' },
           maxWidth: { md: '40%', xs: '100%' },
           minWidth: 0,
           minHeight: 520,
@@ -90,7 +92,7 @@ function LinkPreviewPanel({
           p: 2,
         } }
       >
-        <Stack spacing={ 1.5 } sx={ { height: '100%' } }>
+        <Stack spacing={ 1.5 } sx={ { height: '100%', overflowY: 'auto', pr: 0.25 } }>
           <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
             Link Group Overview
           </Typography>
@@ -138,6 +140,8 @@ function LinkPreviewPanel({
         borderColor: 'divider',
         borderRadius: 1,
         flex: { md: '1 1 40%', xs: '1 1 auto' },
+        height: { md: 520, xs: 'auto' },
+        maxHeight: { md: 520, xs: 'none' },
         maxWidth: { md: '40%', xs: '100%' },
         minWidth: 0,
         minHeight: 520,
@@ -145,7 +149,7 @@ function LinkPreviewPanel({
         p: 2,
       } }
     >
-      <Stack spacing={ 1.5 } sx={ { height: '100%' } }>
+      <Stack spacing={ 1.5 } sx={ { height: '100%', overflowY: 'auto', pr: 0.25 } }>
         <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
           Link Preview
         </Typography>

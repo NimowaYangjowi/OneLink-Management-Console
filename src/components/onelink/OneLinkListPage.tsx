@@ -7,27 +7,25 @@ import { CheckmarkCircle02Icon, Copy01Icon } from '@hugeicons/core-free-icons';
 import {
   Alert,
   Box,
-  Button,
   IconButton,
   InputAdornment,
   Menu,
   MenuItem,
+  Pagination,
   Paper,
   Stack,
-  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Tabs,
   TextField,
   Typography,
 } from '@mui/material';
 import { MoreHorizontal, Search } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   useCallback,
   useEffect,
@@ -36,39 +34,57 @@ import {
   type SyntheticEvent,
 } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
+import CreationTypeHeader from '@/components/onelink/list/CreationTypeHeader';
 import FilterChipSelect from '@/components/onelink/list/FilterChipSelect';
 import type { FilterChipOption, OneLinkTabType } from '@/components/onelink/list/types';
 import { useOneLinkRowActions } from '@/components/onelink/list/useOneLinkRowActions';
 import {
   buildEditHref,
   formatCreatedAt,
-  getCreationTypeFromSearchParams,
 } from '@/components/onelink/list/utils';
 import { filledFieldSx } from '@/components/onelink/stitched/fieldStyles';
 import HugeIcon from '@/components/shared/HugeIcon';
 import { sanitizeOneLinkRecords, type OneLinkRecord } from '@/lib/onelinkLinksSchema';
 
+const DEFAULT_PAGE_SIZE = 50;
+const SEARCH_DEBOUNCE_MS = 250;
 const searchFieldSx = filledFieldSx;
+
+type OneLinkListPageProps = {
+  initialCreationType: OneLinkTabType;
+};
+
+type OneLinkListResponse = {
+  error?: string;
+  page?: number;
+  pageSize?: number;
+  records?: unknown;
+  templateOptions?: unknown;
+  total?: number;
+  totalPages?: number;
+};
 
 /**
  * OneLinkListPage
  *
  * Example usage:
- * <OneLinkListPage />
+ * <OneLinkListPage initialCreationType='single_link' />
  */
-function OneLinkListPage() {
+function OneLinkListPage({ initialCreationType }: OneLinkListPageProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [records, setRecords] = useState<OneLinkRecord[]>([]);
+  const [templateOptions, setTemplateOptions] = useState<string[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [activeCreationTypeTab, setActiveCreationTypeTab] = useState<OneLinkTabType>(
-    getCreationTypeFromSearchParams(searchParams),
-  );
+  const [debouncedSearchKeyword, setDebouncedSearchKeyword] = useState('');
+  const [activeCreationTypeTab, setActiveCreationTypeTab] = useState<OneLinkTabType>(initialCreationType);
   const [templateFilter, setTemplateFilter] = useState('all');
 
   const {
@@ -89,56 +105,109 @@ function OneLinkListPage() {
     setRecords,
   });
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchKeyword(searchKeyword.trim());
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [searchKeyword]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCreationTypeTab, debouncedSearchKeyword, templateFilter]);
+
+  useEffect(() => {
+    setTemplateFilter('all');
+  }, [activeCreationTypeTab]);
+
   const loadRecords = useCallback(async () => {
     setIsLoading(true);
     setLoadError('');
 
     try {
-      const response = await fetch('/api/onelinks', {
-        cache: 'no-store',
+      const query = new URLSearchParams();
+      query.set('page', String(currentPage));
+      query.set('pageSize', String(DEFAULT_PAGE_SIZE));
+      query.set('creationType', activeCreationTypeTab);
+
+      if (debouncedSearchKeyword) {
+        query.set('q', debouncedSearchKeyword);
+      }
+      if (templateFilter !== 'all') {
+        query.set('templateId', templateFilter);
+      }
+
+      const response = await fetch(`/api/onelinks?${query.toString()}`, {
         method: 'GET',
       });
-      const payload = (await response.json().catch(() => [])) as unknown;
+      const payload = (await response.json().catch(() => null)) as OneLinkListResponse | null;
 
-      if (!response.ok) {
+      if (!response.ok || !payload) {
         setRecords([]);
-        setLoadError('Failed to load OneLink records.');
+        setTemplateOptions([]);
+        setTotalRecords(0);
+        setTotalPages(1);
+        setLoadError(payload?.error || 'Failed to load OneLink records.');
         return;
       }
 
-      setRecords(sanitizeOneLinkRecords(payload));
+      const nextRecords = sanitizeOneLinkRecords(payload.records);
+      const nextTemplateOptions = Array.isArray(payload.templateOptions)
+        ? payload.templateOptions
+            .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+            .map((value) => value.trim())
+        : [];
+
+      setRecords(nextRecords);
+      setTemplateOptions(nextTemplateOptions);
+      setTotalRecords(typeof payload.total === 'number' && Number.isFinite(payload.total) ? Math.max(0, payload.total) : 0);
+      setTotalPages(
+        typeof payload.totalPages === 'number' && Number.isFinite(payload.totalPages)
+          ? Math.max(1, Math.trunc(payload.totalPages))
+          : 1,
+      );
+
+      if (typeof payload.page === 'number' && Number.isFinite(payload.page)) {
+        const normalizedPage = Math.max(1, Math.trunc(payload.page));
+        if (normalizedPage !== currentPage) {
+          setCurrentPage(normalizedPage);
+        }
+      }
     } catch {
       setRecords([]);
+      setTemplateOptions([]);
+      setTotalRecords(0);
+      setTotalPages(1);
       setLoadError('Failed to load OneLink records.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [activeCreationTypeTab, currentPage, debouncedSearchKeyword, templateFilter]);
 
   useEffect(() => {
     void loadRecords();
   }, [loadRecords]);
 
   useEffect(() => {
-    setActiveCreationTypeTab(getCreationTypeFromSearchParams(searchParams));
-  }, [searchParams]);
+    if (!actionSuccess && !actionError) {
+      return;
+    }
+
+    void loadRecords();
+  }, [actionError, actionSuccess, loadRecords]);
 
   useEffect(() => {
-    setTemplateFilter('all');
-  }, [activeCreationTypeTab]);
+    if (templateFilter === 'all') {
+      return;
+    }
 
-  const tabRecords = useMemo(
-    () => records.filter((record) => record.creationType === activeCreationTypeTab),
-    [activeCreationTypeTab, records],
-  );
-
-  const templateOptions = useMemo(
-    () =>
-      [...new Set(tabRecords.map((record) => record.templateId))]
-        .filter(Boolean)
-        .sort((first, second) => first.localeCompare(second)),
-    [tabRecords],
-  );
+    if (!templateOptions.includes(templateFilter)) {
+      setTemplateFilter('all');
+    }
+  }, [templateFilter, templateOptions]);
 
   const templateFilterOptions = useMemo<ReadonlyArray<FilterChipOption<string>>>(
     () => [
@@ -148,43 +217,16 @@ function OneLinkListPage() {
     [templateOptions],
   );
 
-  const filteredRecords = useMemo(() => {
-    const keyword = searchKeyword.trim().toLowerCase();
-
-    return tabRecords.filter((record) => {
-      if (templateFilter !== 'all' && record.templateId !== templateFilter) {
-        return false;
-      }
-
-      if (!keyword) {
-        return true;
-      }
-
-      const searchSource = [
-        record.linkName,
-        record.shortLink,
-        record.longUrl,
-        record.templateId,
-        record.mediaSource,
-        record.campaignName,
-        record.channel,
-      ]
-        .join(' ')
-        .toLowerCase();
-
-      return searchSource.includes(keyword);
-    });
-  }, [searchKeyword, tabRecords, templateFilter]);
-
   const handleCreationTypeTabChange = (_: SyntheticEvent, value: OneLinkTabType) => {
+    if (value === 'link_group') {
+      router.push('/link-groups');
+      return;
+    }
+
     setActiveCreationTypeTab(value);
 
-    const nextParams = new URLSearchParams(searchParams.toString());
-    if (value === 'link_group') {
-      nextParams.set('type', 'link_group');
-    } else {
-      nextParams.delete('type');
-    }
+    const nextParams = new URLSearchParams(window.location.search);
+    nextParams.delete('type');
 
     const nextQuery = nextParams.toString();
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
@@ -204,41 +246,7 @@ function OneLinkListPage() {
             } }
           >
             <Stack spacing={ 1.25 }>
-              <Stack
-                alignItems='center'
-                direction={ { md: 'row', xs: 'column' } }
-                justifyContent='space-between'
-                spacing={ 1 }
-              >
-                <Tabs
-                  aria-label='OneLink type tabs'
-                  onChange={ handleCreationTypeTabChange }
-                  sx={ {
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    minHeight: 44,
-                    width: { md: 'auto', xs: '100%' },
-                    '& .MuiTab-root': {
-                      fontSize: 13,
-                      fontWeight: 600,
-                      minHeight: 44,
-                      px: 1.5,
-                      textTransform: 'none',
-                    },
-                  } }
-                  value={ activeCreationTypeTab }
-                >
-                  <Tab label='Single Link' value='single_link' />
-                  <Tab label='Link Group' value='link_group' />
-                </Tabs>
-                <Button
-                  component={ Link }
-                  href='/create'
-                  variant='contained'
-                >
-                  Create OneLink
-                </Button>
-              </Stack>
+              <CreationTypeHeader activeTab={ activeCreationTypeTab } onTabChange={ handleCreationTypeTabChange } />
               <TextField
                 fullWidth
                 onChange={ (event) => setSearchKeyword(event.target.value) }
@@ -268,7 +276,7 @@ function OneLinkListPage() {
 
           <Box sx={ { display: 'flex', justifyContent: 'space-between', px: 0.5 } }>
             <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>
-              {`Showing ${filteredRecords.length} / ${tabRecords.length} records`}
+              {`Showing ${records.length} / ${totalRecords} records`}
             </Typography>
             {isLoading && (
               <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>Loading...</Typography>
@@ -279,7 +287,7 @@ function OneLinkListPage() {
           {actionError ? <Alert severity='error'>{actionError}</Alert> : null}
           {actionSuccess ? <Alert severity='success'>{actionSuccess}</Alert> : null}
 
-          {!isLoading && filteredRecords.length === 0 ? (
+          {!isLoading && records.length === 0 ? (
             <Paper
               elevation={ 0 }
               sx={ {
@@ -299,7 +307,7 @@ function OneLinkListPage() {
             </Paper>
           ) : null}
 
-          {filteredRecords.length > 0 ? (
+          {records.length > 0 ? (
             <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 1 } }>
               <TableContainer>
                 <Table sx={ { minWidth: 1100 } }>
@@ -316,7 +324,7 @@ function OneLinkListPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {filteredRecords.map((record) => (
+                    {records.map((record) => (
                       <TableRow key={ record.id } hover>
                         <TableCell sx={ { whiteSpace: 'nowrap' } }>{formatCreatedAt(record.createdAt)}</TableCell>
                         <TableCell>{record.linkName}</TableCell>
@@ -376,6 +384,18 @@ function OneLinkListPage() {
                 </Table>
               </TableContainer>
             </Paper>
+          ) : null}
+
+          {totalPages > 1 ? (
+            <Stack alignItems='center'>
+              <Pagination
+                color='primary'
+                count={ totalPages }
+                onChange={ (_, value) => setCurrentPage(value) }
+                page={ currentPage }
+                shape='rounded'
+              />
+            </Stack>
           ) : null}
 
           <Menu

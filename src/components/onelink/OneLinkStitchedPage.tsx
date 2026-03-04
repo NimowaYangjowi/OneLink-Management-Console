@@ -29,7 +29,12 @@ function OneLinkStitchedPage({
     androidFallbackOptions,
     brandDomainOptions,
     campaignName,
+    campaignComposedValue,
     campaignOptions,
+    campaignRule,
+    campaignRuleWarning,
+    campaignSlotErrors,
+    campaignSlotValues,
     channel,
     channelOptions,
     createFeedback,
@@ -45,6 +50,7 @@ function OneLinkStitchedPage({
     handleAddParameter,
     handleBrandDomainChange,
     handleBrandDomainInputChange,
+    handleCampaignSlotChange,
     handleCopyShortLink,
     handleCreateLink,
     handleParameterChange,
@@ -55,6 +61,7 @@ function OneLinkStitchedPage({
     hasInvalidRedirectUrl,
     hasIosFallbackUrlError,
     hasLinkNameError,
+    hasCampaignRuleError,
     hasMediaSourceError,
     hasMissingRequiredField,
     hasTemplateIdError,
@@ -154,6 +161,12 @@ function OneLinkStitchedPage({
                 campaignName={ campaignName }
                 onCampaignNameChange={ setCampaignName }
                 campaignOptions={ campaignOptions }
+                campaignRule={ campaignRule }
+                campaignSlotValues={ campaignSlotValues }
+                onCampaignSlotChange={ handleCampaignSlotChange }
+                campaignSlotErrors={ campaignSlotErrors }
+                campaignComposedValue={ campaignComposedValue }
+                campaignRuleWarning={ campaignRuleWarning }
                 adSet={ adSet }
                 onAdSetChange={ setAdSet }
                 adSetOptions={ adSetOptions }
@@ -170,6 +183,7 @@ function OneLinkStitchedPage({
                 hasLinkNameError={ hasLinkNameError }
                 hasTemplateIdError={ hasTemplateIdError }
                 hasMediaSourceError={ hasMediaSourceError }
+                hasCampaignRuleError={ hasCampaignRuleError }
               />
 
               <DeepLinkingSection

@@ -2,7 +2,6 @@
  * Step 3 form for selecting short link ID generation strategy.
  */
 import {
-  Alert,
   Autocomplete,
   Divider,
   FormControlLabel,
@@ -20,7 +19,6 @@ export type ShortLinkFieldOption = {
 };
 
 type ShortLinkIdStepProps = {
-  fieldMissingCount: number;
   fieldOptions: ShortLinkFieldOption[];
   leafPathCount: number;
   onSelectFieldKey: (fieldKey: string) => void;
@@ -29,7 +27,6 @@ type ShortLinkIdStepProps = {
 };
 
 function ShortLinkIdStep({
-  fieldMissingCount,
   fieldOptions,
   leafPathCount,
   onSelectFieldKey,
@@ -104,11 +101,6 @@ function ShortLinkIdStep({
             value={ selectedFieldKey }
           />
 
-          {fieldMissingCount > 0 && (
-            <Alert severity='warning'>
-              {`${fieldMissingCount} path${fieldMissingCount === 1 ? '' : 's'} do not include this field and will use random IDs.`}
-            </Alert>
-          )}
         </Stack>
       )}
     </Stack>

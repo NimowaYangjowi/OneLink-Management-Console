@@ -49,6 +49,9 @@ export function ensureOneLinkLinkGroupColumns(db: Database.Database): void {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_onelink_links_group_id ON onelink_links(group_id);
     CREATE UNIQUE INDEX IF NOT EXISTS uniq_onelink_links_group_item_id ON onelink_links(group_item_id);
+    CREATE INDEX IF NOT EXISTS idx_onelink_links_created_at ON onelink_links(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_onelink_link_groups_created_at ON onelink_link_groups(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_group_items_group_created_at ON onelink_link_group_items(group_id, created_at ASC);
   `);
 }
 

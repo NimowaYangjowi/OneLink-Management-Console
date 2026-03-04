@@ -4,5 +4,5 @@ Route segment for Link Group compatibility paths.
 
 ## Files
 
-- `page.tsx` - Redirects to `/links?type=link_group`.
+- `page.tsx` - Renders the Link Group list page.
 - `[id]/page.tsx` - Link Group detail page.

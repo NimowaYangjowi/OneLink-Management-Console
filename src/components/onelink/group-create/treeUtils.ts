@@ -106,6 +106,23 @@ export function removeNodeById(nodes: EditorTreeNode[], targetNodeId: string): E
     }));
 }
 
+export function removeNodesByIds(nodes: EditorTreeNode[], targetNodeIds: string[]): EditorTreeNode[] {
+  if (targetNodeIds.length === 0) {
+    return nodes;
+  }
+
+  const targetNodeIdSet = new Set(targetNodeIds);
+
+  const removeNodes = (items: EditorTreeNode[]): EditorTreeNode[] => items
+    .filter((node) => !targetNodeIdSet.has(node.id))
+    .map((node) => ({
+      ...node,
+      children: removeNodes(node.children),
+    }));
+
+  return removeNodes(nodes);
+}
+
 export function renameNodeById(nodes: EditorTreeNode[], targetNodeId: string, nextValue: string): EditorTreeNode[] {
   return nodes.map((node) => {
     if (node.id === targetNodeId) {

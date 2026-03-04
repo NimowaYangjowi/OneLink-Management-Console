@@ -18,25 +18,42 @@ import {
   useMemo,
   useRef,
   useReducer,
-  useState,
   type ReactNode,
 } from 'react';
 import {
   createInitialSettingsState,
+  sanitizeNamingConventionRule,
   sanitizeSettingsState,
   validateTemplateIdFormat,
+  type NamingConventionRule,
+  type NamingConventionTargetField,
+  type NamingRuleEnforcementMode,
   type PresetField,
   type SettingsState,
 } from '@/lib/settingsSchema';
 export {
+  NAMING_CONVENTION_TARGET_FIELDS,
+  NAMING_CONVENTION_TARGET_FIELD_LABELS,
+  NAMING_RULE_ENFORCEMENT_MODE_LABELS,
   PRESET_FIELDS,
   PRESET_FIELDS_BY_SECTION,
   PRESET_FIELD_LABELS,
   PRESET_FIELD_PLACEHOLDERS,
   PRESET_SECTIONS,
   PRESET_SECTION_LABELS,
+  sanitizeNamingConventionRule,
 } from '@/lib/settingsSchema';
-export type { PresetField, PresetSection, SettingsState } from '@/lib/settingsSchema';
+export type {
+  NamingConventionRule,
+  NamingConventionSlotRule,
+  NamingConventionTargetField,
+  NamingDelimiter,
+  NamingRuleEnforcementMode,
+  PresetField,
+  PresetSection,
+  SettingsState,
+  SlotInputMode,
+} from '@/lib/settingsSchema';
 
 type SettingsAction =
   | { type: 'REMOVE_TEMPLATE_ID'; id: string }
@@ -44,6 +61,9 @@ type SettingsAction =
   | { type: 'REMOVE_TEMPLATE_BRANDED_DOMAIN'; templateId: string; domain: string }
   | { type: 'ADD_PRESET'; field: PresetField; value: string }
   | { type: 'REMOVE_PRESET'; field: PresetField; value: string }
+  | { type: 'UPSERT_NAMING_RULE'; field: NamingConventionTargetField; rule: NamingConventionRule }
+  | { type: 'REMOVE_NAMING_RULE'; field: NamingConventionTargetField }
+  | { type: 'SET_NAMING_ENFORCEMENT_MODE'; mode: NamingRuleEnforcementMode }
   | { type: 'HYDRATE'; state: SettingsState };
 
 interface SettingsContextValue {
@@ -56,29 +76,14 @@ interface SettingsContextValue {
   addPreset: (field: PresetField, value: string) => { success: boolean; error?: string };
   removePreset: (field: PresetField, value: string) => void;
   getPresets: (field: PresetField) => string[];
+  upsertNamingConventionRule: (field: NamingConventionTargetField, rule: NamingConventionRule) => void;
+  removeNamingConventionRule: (field: NamingConventionTargetField) => void;
+  getNamingConventionRule: (field: NamingConventionTargetField) => NamingConventionRule | null;
+  setNamingConventionEnforcementMode: (mode: NamingRuleEnforcementMode) => void;
   validateTemplateId: (id: string) => { valid: boolean; error?: string };
 }
 
 const INITIAL_STATE = createInitialSettingsState();
-
-async function fetchSettingsFromApi(signal: AbortSignal): Promise<SettingsState | null> {
-  try {
-    const response = await fetch('/api/settings', {
-      cache: 'no-store',
-      method: 'GET',
-      signal,
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const payload = (await response.json()) as unknown;
-    return sanitizeSettingsState(payload);
-  } catch {
-    return null;
-  }
-}
 
 async function persistSettingsToApi(state: SettingsState, signal: AbortSignal): Promise<boolean> {
   try {
@@ -181,6 +186,36 @@ function settingsReducer(state: SettingsState, action: SettingsAction): Settings
           [action.field]: state.presets[action.field].filter((v) => v !== action.value),
         },
       };
+    case 'UPSERT_NAMING_RULE':
+      return {
+        ...state,
+        namingConvention: {
+          ...state.namingConvention,
+          rules: {
+            ...state.namingConvention.rules,
+            [action.field]: sanitizeNamingConventionRule(action.rule, action.field),
+          },
+        },
+      };
+    case 'REMOVE_NAMING_RULE': {
+      const nextRules = { ...state.namingConvention.rules };
+      delete nextRules[action.field];
+      return {
+        ...state,
+        namingConvention: {
+          ...state.namingConvention,
+          rules: nextRules,
+        },
+      };
+    }
+    case 'SET_NAMING_ENFORCEMENT_MODE':
+      return {
+        ...state,
+        namingConvention: {
+          ...state.namingConvention,
+          enforcementMode: action.mode,
+        },
+      };
     case 'HYDRATE':
       return action.state;
     default:
@@ -199,50 +234,27 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
  *
  * Props:
  * @param {ReactNode} children - Child components [Required]
+ * @param {SettingsState} initialSettings - Initial server-provided settings state [Optional]
  *
  * Example usage:
  * <SettingsProvider><App /></SettingsProvider>
  */
-export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, dispatch] = useReducer(settingsReducer, INITIAL_STATE);
-  const [isHydrated, setIsHydrated] = useState(false);
-  const lastPersistedStateRef = useRef<string>(JSON.stringify(INITIAL_STATE));
-  const hasLocalChangesRef = useRef(false);
+export function SettingsProvider({
+  children,
+  initialSettings = INITIAL_STATE,
+}: {
+  children: ReactNode;
+  initialSettings?: SettingsState;
+}) {
+  const [settings, dispatch] = useReducer(
+    settingsReducer,
+    initialSettings,
+    (seedState) => sanitizeSettingsState(seedState),
+  );
+  const lastPersistedStateRef = useRef<string>(JSON.stringify(sanitizeSettingsState(initialSettings)));
 
-  /** Hydrate state from server on mount. */
+  /** Persist to server whenever settings state changes. */
   useEffect(() => {
-    let isMounted = true;
-    const controller = new AbortController();
-
-    const hydrate = async () => {
-      const loadedSettings = await fetchSettingsFromApi(controller.signal);
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (loadedSettings && !hasLocalChangesRef.current) {
-        dispatch({ type: 'HYDRATE', state: loadedSettings });
-        lastPersistedStateRef.current = JSON.stringify(loadedSettings);
-      }
-
-      setIsHydrated(true);
-    };
-
-    void hydrate();
-
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, []);
-
-  /** Persist to server on every change after initial hydration. */
-  useEffect(() => {
-    if (!isHydrated) {
-      return;
-    }
-
     const serializedState = JSON.stringify(settings);
     if (serializedState === lastPersistedStateRef.current) {
       return;
@@ -262,7 +274,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return () => {
       controller.abort();
     };
-  }, [isHydrated, settings]);
+  }, [settings]);
 
   const validateTemplateId = useCallback(
     (id: string): { valid: boolean; error?: string } => {
@@ -293,7 +305,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         return { success: false, error: result.error ?? 'Failed to add template ID.' };
       }
 
-      hasLocalChangesRef.current = true;
       dispatch({ type: 'HYDRATE', state: result.state });
       lastPersistedStateRef.current = JSON.stringify(result.state);
       return { success: true };
@@ -302,7 +313,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const removeTemplateId = useCallback((id: string) => {
-    hasLocalChangesRef.current = true;
     dispatch({ type: 'REMOVE_TEMPLATE_ID', id });
   }, []);
 
@@ -323,7 +333,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'This branded domain already exists in this template.' };
       }
 
-      hasLocalChangesRef.current = true;
       dispatch({
         type: 'ADD_TEMPLATE_BRANDED_DOMAIN',
         domain: normalized,
@@ -335,7 +344,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const removeTemplateBrandedDomain = useCallback((templateId: string, domain: string) => {
-    hasLocalChangesRef.current = true;
     dispatch({ type: 'REMOVE_TEMPLATE_BRANDED_DOMAIN', domain, templateId });
   }, []);
 
@@ -353,7 +361,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (settings.presets[field].includes(trimmed)) {
         return { success: false, error: 'This value already exists.' };
       }
-      hasLocalChangesRef.current = true;
       dispatch({ type: 'ADD_PRESET', field, value: trimmed });
       return { success: true };
     },
@@ -361,7 +368,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const removePreset = useCallback((field: PresetField, value: string) => {
-    hasLocalChangesRef.current = true;
     dispatch({ type: 'REMOVE_PRESET', field, value });
   }, []);
 
@@ -369,6 +375,26 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     (field: PresetField): string[] => settings.presets[field],
     [settings.presets]
   );
+
+  const upsertNamingConventionRule = useCallback(
+    (field: NamingConventionTargetField, rule: NamingConventionRule) => {
+      dispatch({ type: 'UPSERT_NAMING_RULE', field, rule });
+    },
+    [],
+  );
+
+  const removeNamingConventionRule = useCallback((field: NamingConventionTargetField) => {
+    dispatch({ type: 'REMOVE_NAMING_RULE', field });
+  }, []);
+
+  const getNamingConventionRule = useCallback(
+    (field: NamingConventionTargetField): NamingConventionRule | null => settings.namingConvention.rules[field] ?? null,
+    [settings.namingConvention.rules],
+  );
+
+  const setNamingConventionEnforcementMode = useCallback((mode: NamingRuleEnforcementMode) => {
+    dispatch({ type: 'SET_NAMING_ENFORCEMENT_MODE', mode });
+  }, []);
 
   const contextValue = useMemo<SettingsContextValue>(
     () => ({
@@ -381,6 +407,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       addPreset,
       removePreset,
       getPresets,
+      upsertNamingConventionRule,
+      removeNamingConventionRule,
+      getNamingConventionRule,
+      setNamingConventionEnforcementMode,
       validateTemplateId,
     }),
     [
@@ -393,6 +423,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       addPreset,
       removePreset,
       getPresets,
+      upsertNamingConventionRule,
+      removeNamingConventionRule,
+      getNamingConventionRule,
+      setNamingConventionEnforcementMode,
       validateTemplateId,
     ]
   );

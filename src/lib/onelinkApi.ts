@@ -133,12 +133,30 @@ async function readResponseErrorMessage(
   }
 
   try {
-    const parsed = JSON.parse(responseText) as { error?: string; message?: string };
+    const parsed = JSON.parse(responseText) as {
+      details?: string;
+      error?: string;
+      'error-type'?: string;
+      error_type?: string;
+      message?: string;
+    };
     if (typeof parsed.error === 'string' && parsed.error.trim()) {
       return { message: parsed.error.trim(), rawBody: responseText };
     }
     if (typeof parsed.message === 'string' && parsed.message.trim()) {
       return { message: parsed.message.trim(), rawBody: responseText };
+    }
+    const errorType = typeof parsed.error_type === 'string'
+      ? parsed.error_type.trim()
+      : typeof parsed['error-type'] === 'string'
+        ? parsed['error-type'].trim()
+        : '';
+    if (errorType) {
+      const detailText = typeof parsed.details === 'string' ? parsed.details.trim() : '';
+      return {
+        message: detailText ? `${errorType}: ${detailText}` : errorType,
+        rawBody: responseText,
+      };
     }
   } catch {
     // Keep raw response text fallback below.
@@ -280,10 +298,10 @@ async function createShortlinkWithRetry(
   const endpoint = `${ONELINK_API_BASE_URL}/shortlinks/${encodeURIComponent(normalizedTemplateId)}`;
   const requestBody: {
     brand_domain?: string;
-    data: string;
+    data: Record<string, string>;
     shortlink_id?: string;
   } = {
-    data: JSON.stringify(normalizeOneLinkData(input.data, makeError)),
+    data: normalizeOneLinkData(input.data, makeError),
   };
 
   const normalizedBrandDomain = input.brandDomain?.trim().toLowerCase() || '';
@@ -441,10 +459,10 @@ export async function updateOneLinkShortlink(input: UpdateOneLinkShortlinkInput)
   const endpoint = `${ONELINK_API_BASE_URL}/shortlinks/${encodeURIComponent(normalizedTemplateId)}/${encodeURIComponent(normalizedShortLinkId)}`;
   const requestBody: {
     brand_domain?: string;
-    data: string;
+    data: Record<string, string>;
     ttl?: string;
   } = {
-    data: JSON.stringify(normalizeOneLinkData(input.data, (message, status) => new OneLinkUpdateError(message, status))),
+    data: normalizeOneLinkData(input.data, (message, status) => new OneLinkUpdateError(message, status)),
   };
 
   const normalizedBrandDomain = input.brandDomain?.trim().toLowerCase() || '';

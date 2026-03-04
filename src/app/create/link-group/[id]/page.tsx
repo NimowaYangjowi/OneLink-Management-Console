@@ -1,7 +1,7 @@
 /**
- * Link-group edit route that reuses the stepper page in edit mode.
+ * Legacy link-group edit route that forwards to the dedicated edit URL.
  */
-import OneLinkGroupCreatePage from '@/components/onelink/OneLinkGroupCreatePage';
+import { redirect } from 'next/navigation';
 
 type LinkGroupEditPageProps = {
   params: Promise<{ id: string }>;
@@ -10,5 +10,5 @@ type LinkGroupEditPageProps = {
 export default async function LinkGroupEditPage({ params }: LinkGroupEditPageProps) {
   const { id } = await params;
 
-  return <OneLinkGroupCreatePage editGroupId={ id } />;
+  redirect(`/link-groups/${encodeURIComponent(id)}/edit`);
 }

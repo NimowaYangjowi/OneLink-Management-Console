@@ -2,6 +2,7 @@
  * OneLink detail API route for reading, updating, and deleting an existing link record.
  */
 import { NextResponse } from 'next/server';
+import { validateOneLinkDataByNamingRules } from '@/lib/namingConvention';
 import {
   OneLinkDeleteError,
   OneLinkGetError,
@@ -11,22 +12,18 @@ import {
   getOneLinkShortlinkData,
   updateOneLinkShortlink,
 } from '@/lib/onelinkApi';
-import { validateOneLinkRedirectUrl } from '@/lib/onelinkLinksSchema';
+import { sanitizeOneLinkData } from '@/lib/onelinkLinksSchema';
 import {
   deleteOneLinkRecord,
   getOneLinkRecordById,
   updateOneLinkRecord,
 } from '@/lib/onelinkLinksStore';
+import { loadSettings } from '@/lib/settingsStore';
 
 export const runtime = 'nodejs';
 
 const IPV4_HOSTNAME_REGEX =
   /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-const REDIRECTION_URL_FIELD_LABELS: Record<string, string> = {
-  af_android_url: 'Android Mobile Redirection URL',
-  af_ios_url: 'iOS Mobile Redirection URL',
-  af_web_dp: 'Desktop Fallback URL',
-};
 
 type UpdateOneLinkRequestPayload = {
   brandDomain: string;
@@ -81,54 +78,6 @@ function sanitizeBrandDomain(value: unknown): { error?: string; value: string } 
   return { value: normalized };
 }
 
-function sanitizeOneLinkData(value: unknown): { error?: string; value: Record<string, string> } {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return { error: 'OneLink data is invalid.', value: {} };
-  }
-
-  const normalized: Record<string, string> = {};
-
-  for (const [rawKey, rawValue] of Object.entries(value as Record<string, unknown>)) {
-    const key = rawKey.trim();
-    if (!key) {
-      continue;
-    }
-
-    if (typeof rawValue !== 'string') {
-      return { error: `OneLink data value for "${key}" must be a string.`, value: {} };
-    }
-
-    const dataValue = rawValue.trim();
-    if (!dataValue) {
-      continue;
-    }
-
-    if (key.length > 128) {
-      return { error: `OneLink data key "${key}" is too long.`, value: {} };
-    }
-
-    if (dataValue.length > 1024) {
-      return { error: `OneLink data value for "${key}" is too long.`, value: {} };
-    }
-
-    const redirectionFieldLabel = REDIRECTION_URL_FIELD_LABELS[key];
-    if (redirectionFieldLabel) {
-      const validation = validateOneLinkRedirectUrl(dataValue, redirectionFieldLabel);
-      if (!validation.valid) {
-        return { error: validation.error, value: {} };
-      }
-    }
-
-    normalized[key] = dataValue;
-  }
-
-  if (!normalized.pid) {
-    return { error: 'Media Source (pid) is required.', value: {} };
-  }
-
-  return { value: normalized };
-}
-
 function sanitizeUpdatePayload(payload: unknown): {
   error?: string;
   value?: UpdateOneLinkRequestPayload;
@@ -162,6 +111,10 @@ function sanitizeUpdatePayload(payload: unknown): {
       ttl,
     },
   };
+}
+
+function buildNamingViolationMessage(field: string, message: string): string {
+  return `Naming convention violation for "${field}": ${message}`;
 }
 
 function buildLongUrlPreview(templateId: string, oneLinkData: Record<string, string>): string {
@@ -285,10 +238,36 @@ export async function PUT(
     return NextResponse.json({ error: sanitized.error ?? 'Invalid payload.' }, { status: 400 });
   }
 
+  const settings = loadSettings();
+  const namingValidation = validateOneLinkDataByNamingRules(
+    sanitized.value.oneLinkData,
+    settings.namingConvention.rules,
+  );
+  const namingWarnings = namingValidation.valid ? [] : namingValidation.errors;
+
+  if (!namingValidation.valid && settings.namingConvention.enforcementMode === 'strict') {
+    const firstError = namingValidation.errors[0];
+    if (!firstError) {
+      return NextResponse.json(
+        { error: 'Naming convention validation failed.', errors: namingValidation.errors },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json(
+      {
+        error: buildNamingViolationMessage(firstError.field, firstError.message),
+        errors: namingValidation.errors,
+      },
+      { status: 400 },
+    );
+  }
+
+  const normalizedOneLinkData = namingValidation.normalizedData;
+
   try {
     const shortLink = await updateOneLinkShortlink({
       brandDomain: sanitized.value.brandDomain,
-      data: sanitized.value.oneLinkData,
+      data: normalizedOneLinkData,
       shortLinkId: resolved.shortLinkId,
       templateId: resolved.record.templateId,
       ttl: sanitized.value.ttl,
@@ -296,12 +275,12 @@ export async function PUT(
 
     const updatedRecord = updateOneLinkRecord({
       brandDomain: sanitized.value.brandDomain,
-      campaignName: sanitized.value.oneLinkData.c || '',
-      channel: sanitized.value.oneLinkData.af_channel || '',
+      campaignName: normalizedOneLinkData.c || '',
+      channel: normalizedOneLinkData.af_channel || '',
       id: resolved.id,
       linkName: sanitized.value.linkName,
-      longUrl: buildLongUrlPreview(resolved.record.templateId, sanitized.value.oneLinkData),
-      mediaSource: sanitized.value.oneLinkData.pid || '',
+      longUrl: buildLongUrlPreview(resolved.record.templateId, normalizedOneLinkData),
+      mediaSource: normalizedOneLinkData.pid || '',
     });
 
     if (!updatedRecord) {
@@ -314,6 +293,7 @@ export async function PUT(
           ...updatedRecord,
           shortLink,
         },
+        warnings: namingWarnings.length > 0 ? namingWarnings : undefined,
       },
       { status: 200 },
     );

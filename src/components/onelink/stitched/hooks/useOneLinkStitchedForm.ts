@@ -3,6 +3,12 @@
  */
 
 import { useEffect, useMemo, useState, type SyntheticEvent } from 'react';
+import {
+  composeValueFromSlots,
+  splitValueToSlots,
+  validateSlotValues,
+  type NamingConventionValidationError,
+} from '@/lib/namingConvention';
 import { validateOneLinkRedirectUrl } from '@/lib/onelinkLinksSchema';
 import { useSettings } from '@/lib/providers/SettingsContext';
 import { MAPPED_ONELINK_FIELDS, toBooleanFlag } from '@/components/onelink/stitched/constants';
@@ -25,6 +31,8 @@ export function useOneLinkStitchedForm({
 
   const [templateId, setTemplateId] = useState('');
   const [campaignName, setCampaignName] = useState('');
+  const [campaignSlotValues, setCampaignSlotValues] = useState<string[]>([]);
+  const [campaignRuleWarning, setCampaignRuleWarning] = useState('');
   const [deepLinkUri, setDeepLinkUri] = useState('');
   const [desktopFallbackUrl, setDesktopFallbackUrl] = useState('');
   const [iosFallbackUrl, setIosFallbackUrl] = useState('');
@@ -122,6 +130,27 @@ export function useOneLinkStitchedForm({
   );
   const ogImageOptions = useMemo(() => settings.presets.af_og_image, [settings.presets.af_og_image]);
 
+  const campaignRule = useMemo(
+    () => settings.namingConvention.rules.c ?? null,
+    [settings.namingConvention.rules.c],
+  );
+  const isCampaignRuleEnabled = Boolean(campaignRule?.enabled && campaignRule.slots.length > 0);
+  const isCampaignRuleStrict = settings.namingConvention.enforcementMode === 'strict';
+
+  useEffect(() => {
+    if (!isCampaignRuleEnabled || !campaignRule) {
+      setCampaignSlotValues([]);
+      setCampaignRuleWarning('');
+      return;
+    }
+
+    setCampaignSlotValues((previous) => (
+      previous.length === campaignRule.slots.length
+        ? previous
+        : campaignRule.slots.map(() => '')
+    ));
+  }, [campaignRule, isCampaignRuleEnabled]);
+
   useEffect(() => {
     if (!isEditMode) {
       setIsInitialLoadPending(false);
@@ -177,7 +206,22 @@ export function useOneLinkStitchedForm({
         setDismissedAutoBrandDomainTemplateId('');
         setShortLinkId(payload.remote?.shortLinkId || '');
         setMediaSource(remoteData.pid || record.mediaSource || '');
-        setCampaignName(remoteData.c || record.campaignName || '');
+        const loadedCampaignName = remoteData.c || record.campaignName || '';
+        setCampaignName(loadedCampaignName);
+        if (isCampaignRuleEnabled && campaignRule) {
+          const parsedSlots = splitValueToSlots(campaignRule, loadedCampaignName);
+          if (parsedSlots.length === campaignRule.slots.length) {
+            setCampaignSlotValues(parsedSlots);
+            setCampaignRuleWarning('');
+          } else if (loadedCampaignName.trim()) {
+            setCampaignSlotValues(campaignRule.slots.map(() => ''));
+            setCampaignRuleWarning(
+              'Existing campaign value does not match current slot rule. Update slot values before saving in strict mode.',
+            );
+          }
+        } else {
+          setCampaignRuleWarning('');
+        }
         setAdSet(remoteData.af_adset || '');
         setAdName(remoteData.af_ad || '');
         setChannel(remoteData.af_channel || record.channel || '');
@@ -219,7 +263,52 @@ export function useOneLinkStitchedForm({
     return () => {
       isMounted = false;
     };
-  }, [isEditMode, recordId]);
+  }, [campaignRule, isCampaignRuleEnabled, isEditMode, recordId]);
+
+  const handleCampaignSlotChange = (slotIndex: number, value: string) => {
+    setCampaignSlotValues((previous) => {
+      const nextValues = [...previous];
+      nextValues[slotIndex] = value;
+
+      if (campaignRule) {
+        setCampaignName(composeValueFromSlots(campaignRule, nextValues));
+      }
+
+      return nextValues;
+    });
+    setCampaignRuleWarning('');
+  };
+
+  const campaignSlotValidation = useMemo(() => {
+    if (!isCampaignRuleEnabled || !campaignRule) {
+      return { errors: [], normalizedSlots: [], valid: true };
+    }
+
+    return validateSlotValues(campaignRule, campaignSlotValues);
+  }, [campaignRule, campaignSlotValues, isCampaignRuleEnabled]);
+
+  const campaignSlotErrors = useMemo(() => {
+    if (!isCampaignRuleEnabled || !campaignRule) {
+      return [] as string[];
+    }
+
+    const slotErrorByIndex = new Map<number, string>();
+    campaignSlotValidation.errors.forEach((error) => {
+      if (typeof error.slotIndex !== 'number' || slotErrorByIndex.has(error.slotIndex)) {
+        return;
+      }
+      slotErrorByIndex.set(error.slotIndex, error.message);
+    });
+
+    return campaignRule.slots.map((_, index) => slotErrorByIndex.get(index + 1) ?? '');
+  }, [campaignRule, campaignSlotValidation.errors, isCampaignRuleEnabled]);
+
+  const campaignComposedValue = useMemo(() => {
+    if (!isCampaignRuleEnabled || !campaignRule) {
+      return campaignName;
+    }
+    return composeValueFromSlots(campaignRule, campaignSlotValues);
+  }, [campaignName, campaignRule, campaignSlotValues, isCampaignRuleEnabled]);
 
   const shortLink = useMemo(() => {
     const resolvedShortLinkId = shortLinkId.trim() || 'short-link-id';
@@ -229,7 +318,11 @@ export function useOneLinkStitchedForm({
   const oneLinkData = useMemo(() => {
     const payload: Record<string, string> = {};
     if (mediaSource.trim()) payload.pid = mediaSource.trim();
-    if (campaignName.trim()) payload.c = campaignName.trim().replaceAll(' ', '_');
+    if (campaignComposedValue.trim()) {
+      payload.c = isCampaignRuleEnabled
+        ? campaignComposedValue.trim()
+        : campaignComposedValue.trim().replaceAll(' ', '_');
+    }
     if (adSet.trim()) payload.af_adset = adSet.trim();
     if (adName.trim()) payload.af_ad = adName.trim();
     if (channel.trim()) payload.af_channel = channel.trim();
@@ -249,9 +342,9 @@ export function useOneLinkStitchedForm({
     });
     return payload;
   }, [
-    adName, adSet, campaignName, channel, deepLinkUri, desktopFallbackUrl,
+    adName, adSet, campaignComposedValue, channel, deepLinkUri, desktopFallbackUrl,
     forceDeeplink, iosFallbackUrl, isRetargeting, mediaSource,
-    ogDescription, ogImage, ogTitle, parameters, playStoreFallbackUrl,
+    ogDescription, ogImage, ogTitle, parameters, playStoreFallbackUrl, isCampaignRuleEnabled,
   ]);
 
   const generatedLongUrl = useMemo(() => {
@@ -264,7 +357,8 @@ export function useOneLinkStitchedForm({
   const requiredLinkName = linkName.trim();
   const requiredTemplateId = resolvedTemplateId.trim();
   const requiredMediaSource = mediaSource.trim();
-  const hasMissingRequiredField = !requiredLinkName || !requiredTemplateId || !requiredMediaSource;
+  const hasCampaignRuleViolation = isCampaignRuleEnabled && isCampaignRuleStrict && !campaignSlotValidation.valid;
+  const hasMissingRequiredField = !requiredLinkName || !requiredTemplateId || !requiredMediaSource || hasCampaignRuleViolation;
 
   const androidFallbackValidation = useMemo(
     () => validateOneLinkRedirectUrl(playStoreFallbackUrl, 'Android Mobile Redirection URL'),
@@ -286,6 +380,7 @@ export function useOneLinkStitchedForm({
   const hasLinkNameError = showRequiredValidation && !requiredLinkName;
   const hasTemplateIdError = showRequiredValidation && !requiredTemplateId;
   const hasMediaSourceError = showRequiredValidation && !requiredMediaSource;
+  const hasCampaignRuleError = showRequiredValidation && hasCampaignRuleViolation;
   const hasAndroidFallbackUrlError = showRequiredValidation && !androidFallbackValidation.valid;
   const hasIosFallbackUrlError = showRequiredValidation && !iosFallbackValidation.valid;
   const hasDesktopFallbackUrlError = showRequiredValidation && !desktopFallbackValidation.valid;
@@ -319,7 +414,14 @@ export function useOneLinkStitchedForm({
 
     if (hasMissingRequiredField || hasInvalidRedirectUrl) {
       setShowRequiredValidation(true);
-      setCreateFeedback(null);
+      setCreateFeedback(
+        hasCampaignRuleViolation
+          ? {
+              message: 'Campaign naming rule validation failed. Fill required slots and resolve slot errors.',
+              status: 'error',
+            }
+          : null,
+      );
       return;
     }
 
@@ -363,14 +465,16 @@ export function useOneLinkStitchedForm({
         }
 
         setCreateFeedback({
-          message: 'OneLink has been updated successfully.',
+          message: payload?.warnings?.length
+            ? `OneLink has been updated with ${payload.warnings.length} naming warning(s).`
+            : 'OneLink has been updated successfully.',
           status: 'success',
         });
       } else {
         const response = await fetch('/api/onelinks', {
           body: JSON.stringify({
             brandDomain: resolvedBrandDomain,
-            campaignName,
+            campaignName: campaignComposedValue,
             channel,
             creationType,
             linkName: requiredLinkName,
@@ -383,9 +487,12 @@ export function useOneLinkStitchedForm({
           headers: { 'Content-Type': 'application/json' },
           method: 'POST',
         });
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+          warnings?: NamingConventionValidationError[];
+        } | null;
 
         if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
           setCreateFeedback({
             message: payload?.error || 'Failed to save OneLink.',
             status: 'error',
@@ -394,7 +501,9 @@ export function useOneLinkStitchedForm({
         }
 
         setCreateFeedback({
-          message: 'OneLink has been saved to OneLink Management.',
+          message: payload?.warnings?.length
+            ? `OneLink has been saved with ${payload.warnings.length} naming warning(s).`
+            : 'OneLink has been saved to OneLink Management.',
           status: 'success',
         });
       }
@@ -457,6 +566,11 @@ export function useOneLinkStitchedForm({
     brandDomainOptions,
     campaignName,
     campaignOptions,
+    campaignComposedValue,
+    campaignRule,
+    campaignRuleWarning,
+    campaignSlotErrors,
+    campaignSlotValues,
     channel,
     channelOptions,
     createFeedback,
@@ -472,6 +586,7 @@ export function useOneLinkStitchedForm({
     handleAddParameter,
     handleBrandDomainChange,
     handleBrandDomainInputChange,
+    handleCampaignSlotChange,
     handleCopyShortLink,
     handleCreateLink,
     handleParameterChange,
@@ -482,6 +597,7 @@ export function useOneLinkStitchedForm({
     hasInvalidRedirectUrl,
     hasIosFallbackUrlError,
     hasLinkNameError,
+    hasCampaignRuleError,
     hasMediaSourceError,
     hasMissingRequiredField,
     hasTemplateIdError,

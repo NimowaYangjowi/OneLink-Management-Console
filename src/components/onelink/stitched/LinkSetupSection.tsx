@@ -5,6 +5,7 @@
 'use client';
 
 import {
+  Alert,
   Autocomplete,
   Box,
   Checkbox,
@@ -13,6 +14,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import type { NamingConventionRule } from '@/lib/providers/SettingsContext';
 import AutocompleteField from './AutocompleteField';
 import { filledFieldSx } from './fieldStyles';
 
@@ -79,6 +81,12 @@ function LinkSetupSection({
   campaignName,
   onCampaignNameChange,
   campaignOptions,
+  campaignRule,
+  campaignSlotValues,
+  onCampaignSlotChange,
+  campaignSlotErrors,
+  campaignComposedValue,
+  campaignRuleWarning,
   adSet,
   onAdSetChange,
   adSetOptions,
@@ -95,6 +103,7 @@ function LinkSetupSection({
   hasLinkNameError,
   hasTemplateIdError,
   hasMediaSourceError,
+  hasCampaignRuleError,
 }: {
   linkName: string;
   onLinkNameChange: (value: string) => void;
@@ -115,6 +124,12 @@ function LinkSetupSection({
   campaignName: string;
   onCampaignNameChange: (value: string) => void;
   campaignOptions: string[];
+  campaignRule: NamingConventionRule | null;
+  campaignSlotValues: string[];
+  onCampaignSlotChange: (slotIndex: number, value: string) => void;
+  campaignSlotErrors: string[];
+  campaignComposedValue: string;
+  campaignRuleWarning: string;
   adSet: string;
   onAdSetChange: (value: string) => void;
   adSetOptions: string[];
@@ -131,7 +146,10 @@ function LinkSetupSection({
   hasLinkNameError: boolean;
   hasTemplateIdError: boolean;
   hasMediaSourceError: boolean;
+  hasCampaignRuleError: boolean;
 }) {
+  const isCampaignRuleEnabled = Boolean(campaignRule?.enabled && campaignRule.slots.length > 0);
+
   return (
     <Box>
       <Box sx={ { mb: 3 } }>
@@ -224,12 +242,75 @@ function LinkSetupSection({
             isRequired
             hasError={ hasMediaSourceError }
           />
-          <AutocompleteField
-            label='Campaign Name (c)'
-            value={ campaignName }
-            onValueChange={ onCampaignNameChange }
-            options={ campaignOptions }
-          />
+          {isCampaignRuleEnabled && campaignRule ? (
+            <Box sx={ { gridColumn: { lg: 'span 2', md: 'span 2', xs: 'span 1' } } }>
+              <Stack spacing={ 1.25 }>
+                <Typography sx={ { fontSize: 13, fontWeight: 500 } }>Campaign Name (c) - Slot Composer</Typography>
+                {campaignRuleWarning ? (
+                  <Alert severity='warning'>{campaignRuleWarning}</Alert>
+                ) : null}
+                <Box
+                  sx={ {
+                    columnGap: 1,
+                    display: 'grid',
+                    gridTemplateColumns: { lg: '1fr 1fr', xs: '1fr' },
+                    rowGap: 1,
+                  } }
+                >
+                  {campaignRule.slots.map((slot, slotIndex) => (
+                    slot.mode === 'select' ? (
+                      <AutocompleteField
+                        key={ slot.id }
+                        label={ slot.label }
+                        value={ campaignSlotValues[slotIndex] ?? '' }
+                        onValueChange={ (nextValue) => onCampaignSlotChange(slotIndex, nextValue) }
+                        options={ slot.allowedValues }
+                        isRequired={ slot.required }
+                        hasError={ Boolean(campaignSlotErrors[slotIndex]) }
+                        errorMessage={ campaignSlotErrors[slotIndex] }
+                        placeholder='Select or type'
+                      />
+                    ) : (
+                      <Box key={ slot.id }>
+                        <Typography sx={ { fontSize: 13, fontWeight: 500, mb: 0.75 } }>
+                          {slot.label}
+                          {slot.required ? (
+                            <Box component='span' sx={ { color: 'error.main', ml: 0.5 } }>
+                              *
+                            </Box>
+                          ) : null}
+                        </Typography>
+                        <TextField
+                          error={ Boolean(campaignSlotErrors[slotIndex]) }
+                          fullWidth
+                          helperText={ campaignSlotErrors[slotIndex] || undefined }
+                          onChange={ (event) => onCampaignSlotChange(slotIndex, event.target.value) }
+                          placeholder={ slot.mode === 'regex' ? 'Must match regex pattern' : 'Type value' }
+                          sx={ filledFieldSx }
+                          value={ campaignSlotValues[slotIndex] ?? '' }
+                        />
+                      </Box>
+                    )
+                  ))}
+                </Box>
+                <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                  Composed value: {campaignComposedValue || '-'}
+                </Typography>
+                {hasCampaignRuleError ? (
+                  <Typography sx={ { color: 'error.main', fontSize: 12 } }>
+                    Campaign slot values must satisfy the active naming rule.
+                  </Typography>
+                ) : null}
+              </Stack>
+            </Box>
+          ) : (
+            <AutocompleteField
+              label='Campaign Name (c)'
+              value={ campaignName }
+              onValueChange={ onCampaignNameChange }
+              options={ campaignOptions }
+            />
+          )}
           <AutocompleteField label='Ad Set (af_adset)' value={ adSet } onValueChange={ onAdSetChange } options={ adSetOptions } />
           <AutocompleteField label='Ad Name (af_ad)' value={ adName } onValueChange={ onAdNameChange } options={ adNameOptions } />
           <AutocompleteField label='Channel (af_channel)' value={ channel } onValueChange={ onChannelChange } options={ channelOptions } />

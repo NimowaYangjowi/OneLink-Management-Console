@@ -15,6 +15,7 @@ type UseGroupSnippetPreviewArgs = {
   activeTreeFieldLevel: LinkGroupNodeLevel | null;
   globalParams: Record<string, string>;
   resolvedBrandDomain: string;
+  resolvedTemplateDomainHost: string;
   resolvedTemplateId: string;
   roots: EditorTreeNode[];
   selectedTreeNodeIds: string[];
@@ -35,6 +36,7 @@ export function useGroupSnippetPreview({
   activeTreeFieldLevel,
   globalParams,
   resolvedBrandDomain,
+  resolvedTemplateDomainHost,
   resolvedTemplateId,
   roots,
   selectedTreeNodeIds,
@@ -48,9 +50,9 @@ export function useGroupSnippetPreview({
 
   const previewSnippets = useMemo<SnippetPreview[]>(() => {
     const normalizedTemplateId = resolvedTemplateId.trim() || 'template';
-    const normalizedBrandDomain = resolvedBrandDomain.trim();
-    const baseUrl = normalizedBrandDomain
-      ? `https://${normalizedBrandDomain}/${normalizedTemplateId}`
+    const normalizedPreviewDomain = (resolvedBrandDomain.trim() || resolvedTemplateDomainHost.trim()).toLowerCase();
+    const baseUrl = normalizedPreviewDomain
+      ? `https://${normalizedPreviewDomain}/${normalizedTemplateId}`
       : `https://app.onelink.me/${normalizedTemplateId}`;
 
     if (roots.length === 0) {
@@ -118,7 +120,15 @@ export function useGroupSnippetPreview({
     });
 
     return snippets;
-  }, [activeStep, globalParams, resolvedBrandDomain, resolvedTemplateId, roots, sortedScopedParams]);
+  }, [
+    activeStep,
+    globalParams,
+    resolvedBrandDomain,
+    resolvedTemplateDomainHost,
+    resolvedTemplateId,
+    roots,
+    sortedScopedParams,
+  ]);
 
   const filteredSnippets = useMemo(() => {
     if (activeStep !== 1 || selectedTreeNodeIds.length === 0) {

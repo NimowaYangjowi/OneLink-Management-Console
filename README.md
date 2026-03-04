@@ -23,6 +23,15 @@ This repository is provided as a reference implementation.
 
 It is not intended to be used as-is in every environment. The primary value is to help app owners and engineering teams adopt the architecture, patterns, and implementation approach when integrating OneLink into their own systems.
 
+## Recommended Role Management Model
+
+For production systems, we recommend defining a role management model and operating based on it. For example, you can use the following four-level structure:
+
+- Admin
+- Manager: manages settings and permissions, including adding preset values and template IDs in `settings`
+- Marketer: can edit links and link groups, but cannot change `settings` values
+- Agency, affiliates, and others: can only view and use links
+
 ## Important Notice
 
 - This is a personal project.
@@ -37,31 +46,63 @@ All OneLink features in this project are based on AppsFlyer OneLink API v2:
 
 ## Quick Start
 
-1. Install dependencies
+1. Prepare your environment
+
+- Node.js: a version compatible with Next.js 16 (recommended: v20+)
+- pnpm: latest stable version
+
+2. Install dependencies
 
 ```bash
 pnpm install
 ```
 
-2. Create local environment file
+3. Create local environment file
 
 ```bash
 cp .env.example .env.local
 ```
 
-3. Set your AppsFlyer API token in `.env.local`
+4. Configure environment variables in `.env.local`
 
 ```bash
 APPSFLYER_ONELINK_API_TOKEN=your_appsflyer_onelink_api_token_here
+# Optional alias (same purpose as APPSFLYER_ONELINK_API_TOKEN)
+# ONELINK_API_TOKEN=your_appsflyer_onelink_api_token_here
+
+# Optional SQLite file override (default: .data/onelink-console.sqlite)
+# ONELINK_SQLITE_PATH=/absolute/path/to/onelink-console.sqlite
 ```
 
-4. Run development server
+5. Run development server
 
 ```bash
 pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## First-Run Behavior
+
+- On first server start, the app automatically creates a local SQLite database file and initializes required tables/indexes.
+- Default local DB path is `.data/onelink-console.sqlite`.
+- Local DB files are gitignored (`.data/`, `*.db`, `*.sqlite`, `*.sqlite3`) and are not included in pushes/clones.
+
+## Runtime Requirements and Feature Scope
+
+- `APPSFLYER_ONELINK_API_TOKEN` is required for AppsFlyer API-backed operations:
+  - Template domain probe
+  - OneLink create/update/delete operations
+  - Group execution that calls AppsFlyer APIs
+- Without the token, local pages can still load and local SQLite persistence can still work, but API-backed OneLink operations will fail.
+
+## First Functional Check
+
+After starting the app:
+
+1. Open `/settings` and add a valid 4-character Template ID.
+2. Open `/create/single-link` or `/create/link-group`.
+3. Create a test link and verify it appears in `/links`.
 
 ## Validation Commands
 

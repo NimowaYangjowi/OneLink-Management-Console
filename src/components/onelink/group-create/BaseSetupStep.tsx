@@ -26,6 +26,10 @@ function BaseSetupStep({
   templateId,
   templateOptions,
 }: BaseSetupStepProps) {
+  const groupNameFieldId = 'link-group-name';
+  const templateIdFieldId = 'template-id';
+  const brandDomainFieldId = 'brand-domain';
+
   return (
     <Stack spacing={ 1.5 }>
       <Stack spacing={ 0.5 }>
@@ -40,6 +44,7 @@ function BaseSetupStep({
         error={ groupNameError }
         fullWidth
         helperText={ groupNameHelperText }
+        id={ groupNameFieldId }
         label='Link Group Name'
         onChange={ (event) => onGroupNameChange(event.target.value) }
         size='small'
@@ -47,6 +52,7 @@ function BaseSetupStep({
       />
       <TextField
         fullWidth
+        id={ templateIdFieldId }
         label='Template ID'
         onChange={ (event) => onTemplateIdChange(event.target.value) }
         select={ templateOptions.length > 0 }
@@ -60,6 +66,7 @@ function BaseSetupStep({
       <TextField
         fullWidth
         helperText='Optional'
+        id={ brandDomainFieldId }
         label='Brand Domain'
         onChange={ (event) => onBrandDomainChange(event.target.value) }
         size='small'

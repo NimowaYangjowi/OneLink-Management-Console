@@ -161,19 +161,29 @@ function resetProcessingItemsToPending(groupId: string): void {
 
 function getReservedShortLinkIdsForGroup(groupId: string, templateId: string): string[] {
   const db = getSqliteDatabase();
-  const rows = db
+  const storedRows = db
     .prepare(
       `
         SELECT short_link
-        FROM onelink_link_group_items
-        WHERE group_id = ?
+        FROM onelink_links
+        WHERE template_id = ?
           AND short_link != ''
       `,
     )
-    .all(groupId) as Array<{ short_link: string }>;
-
+    .all(templateId) as Array<{ short_link: string }>;
+  const templateGroupRows = db
+    .prepare(
+      `
+        SELECT items.short_link
+        FROM onelink_link_group_items items
+        INNER JOIN onelink_link_groups groups ON groups.id = items.group_id
+        WHERE groups.template_id = ?
+          AND items.short_link != ''
+      `,
+    )
+    .all(templateId) as Array<{ short_link: string }>;
   const reservedIds = new Set<string>();
-  rows.forEach((row) => {
+  [...storedRows, ...templateGroupRows].forEach((row) => {
     const extracted = extractShortLinkIdFromUrl(row.short_link, templateId);
     if (extracted) {
       reservedIds.add(extracted);

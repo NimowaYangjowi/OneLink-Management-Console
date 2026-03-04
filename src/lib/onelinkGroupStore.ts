@@ -463,7 +463,7 @@ export function listLinkGroups(limit = DEFAULT_LIST_LIMIT): LinkGroupSummary[] {
           created_at,
           updated_at
         FROM onelink_link_groups
-        ORDER BY datetime(created_at) DESC
+        ORDER BY created_at DESC
         LIMIT ?
       `,
     )
@@ -543,7 +543,7 @@ export function getLinkGroupDetail(
           updated_at
         FROM onelink_link_group_items
         WHERE group_id = ?
-        ORDER BY datetime(created_at) ASC
+        ORDER BY created_at ASC
         LIMIT ? OFFSET ?
       `,
     )
