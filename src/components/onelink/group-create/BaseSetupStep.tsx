@@ -33,10 +33,10 @@ function BaseSetupStep({
   return (
     <Stack spacing={ 1.5 }>
       <Stack spacing={ 0.5 }>
-        <Typography sx={ { color: 'text.primary', fontSize: 18, fontWeight: 700 } }>
+        <Typography sx={ { color: 'text.primary', typography: 'headlineSm', fontWeight: 700 } }>
           Base Setup
         </Typography>
-        <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
           Set the group identity and target template before building the tree.
         </Typography>
       </Stack>

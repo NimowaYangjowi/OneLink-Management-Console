@@ -28,7 +28,7 @@ function GroupCreateAlerts({
         <Alert severity='warning'>
           <Stack spacing={ 0.5 }>
             {warnings.slice(0, 5).map((warning, index) => (
-              <Typography key={ `${warning}-${index}` } sx={ { fontSize: 13 } }>{warning}</Typography>
+              <Typography key={ `${warning}-${index}` } sx={ { typography: 'bodySm' } }>{warning}</Typography>
             ))}
           </Stack>
         </Alert>

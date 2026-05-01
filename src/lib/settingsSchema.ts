@@ -143,13 +143,15 @@ export interface NamingConventionRule {
   delimiter: NamingDelimiter;
   enabled: boolean;
   field: NamingConventionTargetField;
+  id: string;
+  name: string;
   slots: NamingConventionSlotRule[];
 }
 
 /** Full naming convention settings container. */
 export interface NamingConventionConfig {
   enforcementMode: NamingRuleEnforcementMode;
-  rules: Partial<Record<NamingConventionTargetField, NamingConventionRule>>;
+  rules: Partial<Record<NamingConventionTargetField, NamingConventionRule[]>>;
 }
 
 /** All target fields in display order. */
@@ -382,6 +384,7 @@ export function sanitizePresets(presets: unknown): Record<PresetField, string[]>
 }
 
 const NAMING_SLOT_MAX_COUNT = 12;
+const NAMING_RULE_MAX_COUNT_PER_FIELD = 20;
 const NAMING_SLOT_MAX_LENGTH_DEFAULT = 50;
 const NAMING_SLOT_MAX_LENGTH_MAX = 100;
 const NAMING_SLOT_MAX_LENGTH_MIN = 1;
@@ -449,6 +452,35 @@ function sanitizeNamingSlotId(value: unknown, order: number): string {
     .replaceAll(/^_+|_+$/g, '');
 
   return safeId || `slot_${order}`;
+}
+
+function sanitizeNamingRuleName(value: unknown, field: NamingConventionTargetField, order: number): string {
+  if (typeof value === 'string') {
+    const normalized = value.trim().slice(0, 80);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  const fieldLabel = NAMING_CONVENTION_TARGET_FIELD_LABELS[field].split('(')[0]?.trim() || field;
+  return `${fieldLabel} Rule ${order}`;
+}
+
+function sanitizeNamingRuleId(value: unknown, field: NamingConventionTargetField, order: number): string {
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized) {
+      const safeId = normalized
+        .replaceAll(/[^a-z0-9_-]/g, '_')
+        .replaceAll(/_{2,}/g, '_')
+        .replaceAll(/^_+|_+$/g, '');
+      if (safeId) {
+        return safeId;
+      }
+    }
+  }
+
+  return `rule_${field}_${order}`;
 }
 
 function sanitizeNamingAllowedValues(values: unknown, delimiter: NamingDelimiter): string[] {
@@ -532,6 +564,7 @@ export function sanitizeNamingConventionSlotRule(
 export function sanitizeNamingConventionRule(
   rule: unknown,
   field: NamingConventionTargetField,
+  fallbackOrder = 1,
 ): NamingConventionRule {
   const candidate = rule && typeof rule === 'object'
     ? (rule as Partial<NamingConventionRule>)
@@ -568,6 +601,8 @@ export function sanitizeNamingConventionRule(
     delimiter,
     enabled: Boolean(candidate.enabled),
     field,
+    id: sanitizeNamingRuleId(candidate.id, field, fallbackOrder),
+    name: sanitizeNamingRuleName(candidate.name, field, fallbackOrder),
     slots: sanitizedSlots,
   };
 }
@@ -577,19 +612,43 @@ export function sanitizeNamingConventionRule(
  */
 export function sanitizeNamingConventionRules(
   rules: unknown,
-): Partial<Record<NamingConventionTargetField, NamingConventionRule>> {
+): Partial<Record<NamingConventionTargetField, NamingConventionRule[]>> {
   if (!rules || typeof rules !== 'object') {
     return {};
   }
 
-  const sanitizedRules: Partial<Record<NamingConventionTargetField, NamingConventionRule>> = {};
+  const sanitizedRules: Partial<Record<NamingConventionTargetField, NamingConventionRule[]>> = {};
   NAMING_CONVENTION_TARGET_FIELDS.forEach((field) => {
-    const rawRule = (rules as Partial<Record<NamingConventionTargetField, unknown>>)[field];
-    if (!rawRule || typeof rawRule !== 'object') {
+    const rawFieldRules = (rules as Partial<Record<NamingConventionTargetField, unknown>>)[field];
+    if (!rawFieldRules || typeof rawFieldRules !== 'object') {
       return;
     }
 
-    sanitizedRules[field] = sanitizeNamingConventionRule(rawRule, field);
+    const rawRules = Array.isArray(rawFieldRules) ? rawFieldRules : [rawFieldRules];
+    const dedupedIds = new Set<string>();
+    const nextRules = rawRules
+      .slice(0, NAMING_RULE_MAX_COUNT_PER_FIELD)
+      .map((rawRule, index) => sanitizeNamingConventionRule(rawRule, field, index + 1))
+      .map((rule, index) => {
+        let uniqueId = rule.id;
+        let duplicateIndex = 2;
+
+        while (dedupedIds.has(uniqueId)) {
+          uniqueId = `${rule.id}_${duplicateIndex}`;
+          duplicateIndex += 1;
+        }
+        dedupedIds.add(uniqueId);
+
+        return {
+          ...rule,
+          id: uniqueId,
+          name: sanitizeNamingRuleName(rule.name, field, index + 1),
+        };
+      });
+
+    if (nextRules.length > 0) {
+      sanitizedRules[field] = nextRules;
+    }
   });
 
   return sanitizedRules;

@@ -275,11 +275,11 @@ function OneLinkListPage({ initialCreationType }: OneLinkListPageProps) {
           </Paper>
 
           <Box sx={ { display: 'flex', justifyContent: 'space-between', px: 0.5 } }>
-            <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>
+            <Typography sx={ { color: 'text.secondary', typography: 'bodySm' } }>
               {`Showing ${records.length} / ${totalRecords} records`}
             </Typography>
             {isLoading && (
-              <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>Loading...</Typography>
+              <Typography sx={ { color: 'text.secondary', typography: 'bodySm' } }>Loading...</Typography>
             )}
           </Box>
 
@@ -298,10 +298,10 @@ function OneLinkListPage({ initialCreationType }: OneLinkListPageProps) {
                 textAlign: 'center',
               } }
             >
-              <Typography sx={ { color: 'text.primary', fontSize: 16, fontWeight: 600 } }>
+              <Typography sx={ { color: 'text.primary', typography: 'titleSm', fontWeight: 600 } }>
                 No links found
               </Typography>
-              <Typography sx={ { color: 'text.secondary', fontSize: 13, mt: 0.75 } }>
+              <Typography sx={ { color: 'text.secondary', typography: 'bodySm', mt: 0.75 } }>
                 Create OneLink first, then search or manage records here.
               </Typography>
             </Paper>

@@ -346,7 +346,7 @@ function DemoParameterPanel({ scopePathPrefixes, title }: DemoParameterPanelProp
       } }
     >
       <Stack spacing={ 1.25 } sx={ { height: '100%', minHeight: 0 } }>
-        <Typography sx={ { color: 'text.primary', fontSize: 14, fontWeight: 700 } }>
+        <Typography sx={ { color: 'text.primary', typography: 'bodyMd', fontWeight: 700 } }>
           {title}
         </Typography>
         <Box sx={ { flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5 } }>
@@ -407,10 +407,10 @@ function PathTableVariant() {
         } }
       >
         <Stack spacing={ 1.25 }>
-          <Typography sx={ { color: 'text.primary', fontSize: 16, fontWeight: 700 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'titleSm', fontWeight: 700 } }>
             Path Table Builder
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
             Best for explicit scope editing. Pick one row and apply scoped parameters directly.
           </Typography>
           <Stack direction={ { md: 'row', xs: 'column' } } justifyContent='space-between' spacing={ 1 }>
@@ -508,7 +508,7 @@ function OutlineInspectorVariant() {
               size='small'
               sx={ { p: 0.25 } }
             >
-              <Typography sx={ { fontSize: 12 } }>{isCollapsed ? '▸' : '▾'}</Typography>
+              <Typography sx={ { typography: 'bodyXs' } }>{isCollapsed ? '▸' : '▾'}</Typography>
             </IconButton>
           ) : (
             <Box sx={ { width: 20 } } />
@@ -532,7 +532,7 @@ function OutlineInspectorVariant() {
             } }
             type='button'
           >
-            <Typography sx={ { fontSize: 12, fontWeight: isSelected ? 600 : 500 } }>
+            <Typography sx={ { typography: 'bodyXs', fontWeight: isSelected ? 600 : 500 } }>
               {node.label}
             </Typography>
           </Box>
@@ -556,10 +556,10 @@ function OutlineInspectorVariant() {
         } }
       >
         <Stack spacing={ 1.25 }>
-          <Typography sx={ { color: 'text.primary', fontSize: 16, fontWeight: 700 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'titleSm', fontWeight: 700 } }>
             Outline Tree + Inspector
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
             Best for hierarchy readability. Select any node and edit parameters for that exact scope.
           </Typography>
 
@@ -592,10 +592,10 @@ function OutlineInspectorVariant() {
               } }
             >
               <Stack spacing={ 1 }>
-                <Typography sx={ { color: 'text.secondary', fontSize: 12, fontWeight: 700 } }>
+                <Typography sx={ { color: 'text.secondary', typography: 'bodyXs', fontWeight: 700 } }>
                   Node Inspector
                 </Typography>
-                <Typography sx={ { color: 'text.primary', fontSize: 14, fontWeight: 600 } }>
+                <Typography sx={ { color: 'text.primary', typography: 'bodyMd', fontWeight: 600 } }>
                   {selectedNode?.label ?? 'No node selected'}
                 </Typography>
                 <Chip label={ `Level: ${selectedLevel !== null ? LEVEL_LABELS[selectedLevel] : '-'}` } size='small' />
@@ -605,7 +605,7 @@ function OutlineInspectorVariant() {
                   size='small'
                 />
                 <Divider />
-                <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+                <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
                   Path: {selectedPathLabel || 'Global'}
                 </Typography>
               </Stack>
@@ -676,13 +676,13 @@ function SwimlaneVariant() {
         } }
       >
         <Stack spacing={ 1.25 }>
-          <Typography sx={ { color: 'text.primary', fontSize: 16, fontWeight: 700 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'titleSm', fontWeight: 700 } }>
             Level Swimlane
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
             Best for flow visualization. Each lane is one hierarchy level and selection flows left-to-right.
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)', fontSize: 12 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'codeXs' } }>
             {selectedLabels.length > 0 ? selectedLabels.join(' > ') : 'No selection (global scope)'}
           </Typography>
 
@@ -700,18 +700,18 @@ function SwimlaneVariant() {
               >
                 <Stack spacing={ 0.75 }>
                   <Stack alignItems='center' direction='row' justifyContent='space-between'>
-                    <Typography sx={ { color: 'text.primary', fontSize: 13, fontWeight: 700 } }>
+                    <Typography sx={ { color: 'text.primary', typography: 'bodySm', fontWeight: 700 } }>
                       {`${lane.levelIndex + 1}. ${lane.levelLabel}`}
                     </Typography>
                     <Chip label={ `${lane.nodes.length}` } size='small' />
                   </Stack>
                   <Stack direction='row' spacing={ 0.75 } sx={ { flexWrap: 'wrap' } } useFlexGap>
                     {!lane.parentSelected ? (
-                      <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                      <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                         {`Select ${LEVEL_LABELS[lane.levelIndex - 1]} first.`}
                       </Typography>
                     ) : lane.nodes.length === 0 ? (
-                      <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                      <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                         No items in this lane.
                       </Typography>
                     ) : (
@@ -743,13 +743,15 @@ function SwimlaneVariant() {
                             } }
                             type='button'
                           >
-                            <Typography sx={ { fontSize: 12, fontWeight: isSelected ? 600 : 500 } }>
+                            <Typography sx={ { typography: 'bodyXs', fontWeight: isSelected ? 600 : 500 } }>
                               {node.label}
                             </Typography>
-                            <Typography sx={ {
-                              color: isSelected ? alpha('#fff', 0.92) : 'text.secondary',
-                              fontSize: 10,
-                            } }
+                            <Typography sx={ (theme) => ({
+                              color: isSelected
+                                ? alpha(theme.palette.primary.contrastText, 0.92)
+                                : theme.palette.text.secondary,
+                              typography: 'microTight',
+                            }) }
                             >
                               {`leaf paths: ${countLeafPathsFromNode(node)}`}
                             </Typography>
@@ -797,10 +799,10 @@ function HierarchyBuilderDemoPage() {
             } }
           >
             <Stack spacing={ 1.25 }>
-              <Typography sx={ { color: 'text.primary', fontSize: 18, fontWeight: 700 } }>
+              <Typography sx={ { color: 'text.primary', typography: 'headlineSm', fontWeight: 700 } }>
                 Alternative Hierarchy UX Mockups
               </Typography>
-              <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>
+              <Typography sx={ { color: 'text.secondary', typography: 'bodySm' } }>
                 Compare three UI patterns while keeping the right-side parameter workflow available in every pattern.
               </Typography>
               <Stack direction='row' flexWrap='wrap' spacing={ 0.75 } useFlexGap>

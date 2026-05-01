@@ -210,10 +210,10 @@ function ShortLinkTreePreviewPanel({
       } }
     >
       <Stack spacing={ 1.5 } sx={ { height: '100%', minHeight: 0, overflowY: 'auto', pr: 0.25 } }>
-        <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
+        <Typography sx={ { color: 'text.primary', typography: 'bodyLg', fontWeight: 700 } }>
           Short Link ID Validation
         </Typography>
-        <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
           {`Checking ${deterministicShortLinkIds.length} deterministic short link ID candidate${deterministicShortLinkIds.length === 1 ? '' : 's'} from ${rows.length} path${rows.length === 1 ? '' : 's'}.`}
         </Typography>
 
@@ -240,7 +240,7 @@ function ShortLinkTreePreviewPanel({
 
         {pathDuplicateIssues.length > 0 && (
           <Stack spacing={ 0.75 }>
-            <Typography sx={ { color: 'text.primary', fontSize: 12, fontWeight: 700 } }>
+            <Typography sx={ { color: 'text.primary', typography: 'bodyXs', fontWeight: 700 } }>
               Path Duplicates
             </Typography>
             <Stack spacing={ 0.75 }>
@@ -258,18 +258,17 @@ function ShortLinkTreePreviewPanel({
                   <Typography
                     sx={ {
                       color: 'text.primary',
-                      fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-                      fontSize: 11.5,
+                      typography: 'code2xs',
                       fontWeight: 700,
                     } }
                   >
                     {issue.shortLinkId}
                   </Typography>
-                  <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+                  <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
                     {issue.pathLabels.slice(0, MAX_PATH_LABELS_PER_ISSUE).join(' · ')}
                   </Typography>
                   {issue.pathLabels.length > MAX_PATH_LABELS_PER_ISSUE && (
-                    <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+                    <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
                       {`+${issue.pathLabels.length - MAX_PATH_LABELS_PER_ISSUE} more path(s)`}
                     </Typography>
                   )}
@@ -281,7 +280,7 @@ function ShortLinkTreePreviewPanel({
 
         {databaseDuplicateIssues.length > 0 && (
           <Stack spacing={ 0.75 }>
-            <Typography sx={ { color: 'text.primary', fontSize: 12, fontWeight: 700 } }>
+            <Typography sx={ { color: 'text.primary', typography: 'bodyXs', fontWeight: 700 } }>
               Existing Short Link Conflicts
             </Typography>
             <Stack spacing={ 0.75 }>
@@ -299,18 +298,17 @@ function ShortLinkTreePreviewPanel({
                   <Typography
                     sx={ {
                       color: 'text.primary',
-                      fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-                      fontSize: 11.5,
+                      typography: 'code2xs',
                       fontWeight: 700,
                     } }
                   >
                     {issue.shortLinkId}
                   </Typography>
-                  <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+                  <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
                     {issue.pathLabels.slice(0, MAX_PATH_LABELS_PER_ISSUE).join(' · ')}
                   </Typography>
                   {issue.pathLabels.length > MAX_PATH_LABELS_PER_ISSUE && (
-                    <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+                    <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
                       {`+${issue.pathLabels.length - MAX_PATH_LABELS_PER_ISSUE} more path(s)`}
                     </Typography>
                   )}
@@ -333,21 +331,20 @@ function ShortLinkTreePreviewPanel({
           } }
         >
           {rows.length === 0 ? (
-            <Typography sx={ { color: 'text.secondary', fontSize: 12, p: 1.5 } }>
+            <Typography sx={ { color: 'text.secondary', typography: 'bodyXs', p: 1.5 } }>
               Build tree paths first to validate short link IDs.
             </Typography>
           ) : (
             <Stack divider={ <Divider flexItem /> } spacing={ 0 }>
               {rows.map((row, index) => (
                 <Stack key={ `${row.pathLabel}-${index}` } spacing={ 0.6 } sx={ { p: 1.25 } }>
-                  <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+                  <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
                     {row.pathLabel}
                   </Typography>
                   <Typography
                     sx={ {
                       color: 'text.primary',
-                      fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
-                      fontSize: 11,
+                      typography: 'codeMicro',
                       lineHeight: 1.45,
                       overflowWrap: 'anywhere',
                     } }

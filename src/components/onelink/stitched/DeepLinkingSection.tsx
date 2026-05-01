@@ -81,10 +81,10 @@ function DeepLinkingSection({
   return (
     <Box>
       <Box sx={ { mb: 3 } }>
-        <Typography sx={ { fontSize: 22, fontWeight: 600 } }>
+        <Typography sx={ { typography: 'sectionTitle', fontWeight: 600 } }>
           Deep Linking &amp; Redirection
         </Typography>
-        <Typography sx={ { color: 'text.secondary', fontSize: 14 } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyMd' } }>
           Where should users go if they have the app vs. if they don&apos;t.
         </Typography>
       </Box>
@@ -101,7 +101,7 @@ function DeepLinkingSection({
           } }
         >
           <Box sx={ { width: '100%' } }>
-            <Typography sx={ { fontSize: 14, fontWeight: 500 } }>When App IS Installed</Typography>
+            <Typography sx={ { typography: 'bodyMd', fontWeight: 500 } }>When App IS Installed</Typography>
             <Box sx={ { mt: 1.25 } }>
               <AutocompleteField
                 label='Deep Link URI Scheme'
@@ -135,7 +135,7 @@ function DeepLinkingSection({
           } }
         >
           <Box sx={ { width: '100%' } }>
-            <Typography sx={ { fontSize: 14, fontWeight: 500 } }>
+            <Typography sx={ { typography: 'bodyMd', fontWeight: 500 } }>
               When App IS NOT Installed (Mobile Redirection)
             </Typography>
 

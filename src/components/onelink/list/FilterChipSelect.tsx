@@ -29,7 +29,7 @@ function FilterChipSelect<T extends string>({
     <>
       <Button
         endIcon={
-          <Typography component='span' sx={ { color: 'text.secondary', fontSize: 12, lineHeight: 1 } }>
+          <Typography component='span' sx={ { color: 'text.secondary', typography: 'bodyXs', lineHeight: 1 } }>
             ▾
           </Typography>
         }
@@ -40,7 +40,7 @@ function FilterChipSelect<T extends string>({
           borderColor: 'divider',
           borderRadius: 0.75,
           color: 'text.primary',
-          fontSize: 14,
+          typography: 'bodyMd',
           fontWeight: 500,
           minHeight: 40,
           px: 1.5,

@@ -129,7 +129,7 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
                   backgroundColor: isActive ? 'secondary.main' : 'transparent',
                   borderRadius: 0.75,
                   color: isActive ? 'text.primary' : 'text.secondary',
-                  fontSize: 14,
+                  typography: 'bodyMd',
                   fontWeight: 500,
                   justifyContent: isSidebarCollapsedForLayout ? 'center' : 'flex-start',
                   minHeight: 40,
@@ -223,7 +223,7 @@ function ConsoleLayout({ actions, children, title }: ConsoleLayoutProps) {
             zIndex: 20,
           } }
         >
-          <Typography sx={ { color: 'text.primary', fontSize: 22, fontWeight: 600 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'sectionTitle', fontWeight: 600 } }>
             {title}
           </Typography>
           <Box>{actions}</Box>

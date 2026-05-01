@@ -63,7 +63,7 @@ function ReviewExecuteStep({
 }: ReviewExecuteStepProps) {
   return (
     <Stack spacing={ 1.5 }>
-      <Typography sx={ { color: 'text.primary', fontSize: 18, fontWeight: 700 } }>
+      <Typography sx={ { color: 'text.primary', typography: 'headlineSm', fontWeight: 700 } }>
         Review & Execute
       </Typography>
 
@@ -78,21 +78,21 @@ function ReviewExecuteStep({
         } }
       >
         <Stack direction={ { md: 'row', xs: 'column' } } spacing={ 1.25 }>
-          <Typography sx={ { color: 'text.primary', fontSize: 13 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'bodySm' } }>
             Group: <strong>{groupName.trim() || '-'}</strong>
           </Typography>
-          <Typography sx={ { color: 'text.primary', fontSize: 13 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'bodySm' } }>
             Template: <strong>{templateId.trim() || '-'}</strong>
           </Typography>
-          <Typography sx={ { color: 'text.primary', fontSize: 13 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'bodySm' } }>
             Brand Domain: <strong>{brandDomain.trim() || '-'}</strong>
           </Typography>
         </Stack>
         <Stack direction={ { md: 'row', xs: 'column' } } spacing={ 1.25 } sx={ { mt: 0.75 } }>
-          <Typography sx={ { color: 'text.primary', fontSize: 13 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'bodySm' } }>
             Leaf paths: <strong>{leafCount}</strong>
           </Typography>
-          <Typography sx={ { color: 'text.primary', fontSize: 13 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'bodySm' } }>
             Link params: <strong>{globalParamCount}</strong>
           </Typography>
         </Stack>
@@ -132,11 +132,11 @@ function ReviewExecuteStep({
       {executionDetail && (
         <Stack spacing={ 1.25 }>
           <Divider />
-          <Typography sx={ { color: 'text.primary', fontSize: 16, fontWeight: 700 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'titleSm', fontWeight: 700 } }>
             Execution Progress
           </Typography>
           <LinearProgress value={ executionProgressPercent } variant='determinate' />
-          <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
             {`Status: ${executionDetail.status} · Success: ${executionDetail.successCount} · Failed: ${executionDetail.failedCount} · Progress: ${executionProgressPercent}%`}
           </Typography>
           <Stack direction='row' spacing={ 1 }>
@@ -161,7 +161,7 @@ function ReviewExecuteStep({
           </Stack>
 
           {isPollingExecution && (
-            <Typography sx={ { color: 'info.main', fontSize: 12 } }>
+            <Typography sx={ { color: 'info.main', typography: 'bodyXs' } }>
               Polling status every 2 seconds...
             </Typography>
           )}
@@ -185,13 +185,13 @@ function ReviewExecuteStep({
                         component='a'
                         href={ item.shortLink }
                         rel='noreferrer'
-                        sx={ { color: 'primary.main', fontSize: 12, wordBreak: 'break-all' } }
+                        sx={ { color: 'primary.main', typography: 'bodyXs', wordBreak: 'break-all' } }
                         target='_blank'
                       >
                         {item.shortLink}
                       </Typography>
                     ) : (
-                      <Typography sx={ { color: 'error.main', fontSize: 12 } }>
+                      <Typography sx={ { color: 'error.main', typography: 'bodyXs' } }>
                         {item.errorMessage || '-'}
                       </Typography>
                     )}

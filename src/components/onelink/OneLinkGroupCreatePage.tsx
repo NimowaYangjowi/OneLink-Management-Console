@@ -106,6 +106,11 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
   const [isCheckingGroupNameDuplicate, setIsCheckingGroupNameDuplicate] = useState(false);
   const [isGroupNameDuplicate, setIsGroupNameDuplicate] = useState(false);
   const [groupNameDuplicateCheckError, setGroupNameDuplicateCheckError] = useState('');
+  const [selectedTreeNamingRuleIds, setSelectedTreeNamingRuleIds] = useState({
+    ad: '',
+    adset: '',
+    campaign: '',
+  });
   const [pendingDeleteNodeIds, setPendingDeleteNodeIds] = useState<string[]>([]);
   const [pendingDeleteNodeLevel, setPendingDeleteNodeLevel] = useState<LinkGroupNodeLevel | null>(null);
 
@@ -211,6 +216,33 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
     }
     return resolvedTemplateDomainHost.trim().toLowerCase();
   }, [resolvedBrandDomain, resolvedTemplateDomainHost]);
+  const namingRulesByTreeLevel = useMemo(
+    () => ({
+      ad: (settings.namingConvention.rules.af_ad ?? []).filter((rule) => rule.enabled && rule.slots.length > 0),
+      adset: (settings.namingConvention.rules.af_adset ?? []).filter((rule) => rule.enabled && rule.slots.length > 0),
+      campaign: (settings.namingConvention.rules.c ?? []).filter((rule) => rule.enabled && rule.slots.length > 0),
+    }),
+    [settings.namingConvention.rules.af_ad, settings.namingConvention.rules.af_adset, settings.namingConvention.rules.c],
+  );
+  useEffect(() => {
+    setSelectedTreeNamingRuleIds((previous) => ({
+      ad: namingRulesByTreeLevel.ad.some((rule) => rule.id === previous.ad)
+        ? previous.ad
+        : '',
+      adset: namingRulesByTreeLevel.adset.some((rule) => rule.id === previous.adset)
+        ? previous.adset
+        : '',
+      campaign: namingRulesByTreeLevel.campaign.some((rule) => rule.id === previous.campaign)
+        ? previous.campaign
+        : '',
+    }));
+  }, [namingRulesByTreeLevel.ad, namingRulesByTreeLevel.adset, namingRulesByTreeLevel.campaign]);
+  const setSelectedTreeNamingRuleId = useCallback((level: 'campaign' | 'adset' | 'ad', ruleId: string) => {
+    setSelectedTreeNamingRuleIds((previous) => ({
+      ...previous,
+      [level]: ruleId,
+    }));
+  }, []);
   const {
     canRetryFailedItems,
     createdGroupId,
@@ -243,14 +275,19 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
   const {
     activeTreeInputDraftKey,
     activeTreeInputDraftValue,
+    activeTreeInputNamingPlaceholder,
+    activeTreeInputNamingRuleOptions,
     activeTreeInputPresetOptions,
+    activeTreeInputSelectedNamingRuleId,
     activeTreeInputTargetLevel,
     addTreeInputValues,
     removeNode,
     removeNodes,
     resetTreeEditorState,
+    setActiveTreeInputSelectedNamingRuleId,
     setDraft,
   } = useGroupTreeEditor({
+    namingRules: namingRulesByTreeLevel,
     presets: {
       af_ad: settings.presets.af_ad,
       af_adset: settings.presets.af_adset,
@@ -258,9 +295,11 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
       pid: settings.presets.pid,
     },
     roots,
+    selectedNamingRuleIds: selectedTreeNamingRuleIds,
     selectedChildLevel,
     selectedTreeNodeIds,
     selectedTreeNodeLevel,
+    setSelectedNamingRuleId: setSelectedTreeNamingRuleId,
     setRoots,
     setWarnings,
   });
@@ -824,7 +863,7 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
                 >
                   {isEditHydrating && (
                     <Stack spacing={ 1.5 }>
-                      <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>
+                      <Typography sx={ { color: 'text.secondary', typography: 'bodySm' } }>
                         Loading existing group configuration...
                       </Typography>
                       <LinearProgress />
@@ -849,9 +888,13 @@ function OneLinkGroupCreatePage({ editGroupId }: OneLinkGroupCreatePageProps) {
                     <TreeBuilderStep
                       addCurrentLevelValues={ addTreeInputValues }
                       inputDraftValue={ activeTreeInputDraftValue }
+                      inputNamingPlaceholder={ activeTreeInputNamingPlaceholder }
+                      inputNamingRuleOptions={ activeTreeInputNamingRuleOptions }
                       inputPresetOptions={ activeTreeInputPresetOptions }
+                      inputSelectedNamingRuleId={ activeTreeInputSelectedNamingRuleId }
                       inputTargetLevel={ activeTreeInputTargetLevel }
                       nodeListProps={ nodeListProps }
+                      onInputNamingRuleChange={ setActiveTreeInputSelectedNamingRuleId }
                       onInputDraftChange={ (value) => setDraft(activeTreeInputDraftKey, value) }
                       onInputFieldFocus={ () => setActiveTreeFieldLevel(activeTreeInputTargetLevel) }
                       roots={ roots }

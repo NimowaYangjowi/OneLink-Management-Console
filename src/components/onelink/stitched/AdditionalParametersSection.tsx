@@ -42,8 +42,8 @@ function AdditionalParametersSection({
     <Box sx={ { borderTop: '1px solid', borderTopColor: 'divider', pt: 4 } }>
       <Box sx={ { alignItems: 'center', display: 'flex', justifyContent: 'space-between', mb: 2 } }>
         <Box>
-          <Typography sx={ { fontSize: 22, fontWeight: 600 } }>Additional Parameters</Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 14 } }>
+          <Typography sx={ { typography: 'sectionTitle', fontWeight: 600 } }>Additional Parameters</Typography>
+          <Typography sx={ { color: 'text.secondary', typography: 'bodyMd' } }>
             Add custom parameters for granular tracking.
           </Typography>
         </Box>
@@ -52,7 +52,7 @@ function AdditionalParametersSection({
           sx={ {
             '&:hover': { color: 'text.primary', textDecoration: 'underline' },
             color: 'text.secondary',
-            fontSize: 13,
+            typography: 'bodySm',
             fontWeight: 600,
             minWidth: 0,
             px: 0,

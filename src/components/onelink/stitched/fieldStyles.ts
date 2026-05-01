@@ -2,9 +2,13 @@
  * MUI sx style objects for form fields used across OneLinkStitchedPage sub-components.
  */
 
+export const inputSurfaceSx = {
+  backgroundColor: 'background.paper',
+} as const;
+
 export const filledFieldSx = {
   '& .MuiOutlinedInput-root': {
-    backgroundColor: 'background.default',
+    ...inputSurfaceSx,
     '&.Mui-error fieldset': {
       borderColor: 'error.main',
     },

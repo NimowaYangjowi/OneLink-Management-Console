@@ -94,7 +94,7 @@ function LinkPreviewSidebar({
               py: 2,
             } }
           >
-            <Typography sx={ { fontSize: 16, fontWeight: 600 } }>Link Preview</Typography>
+            <Typography sx={ { typography: 'titleSm', fontWeight: 600 } }>Link Preview</Typography>
           </Box>
 
           <Stack spacing={ 3 } sx={ { p: 3 } }>
@@ -102,7 +102,7 @@ function LinkPreviewSidebar({
               <Typography
                 sx={ {
                   color: 'text.secondary',
-                  fontSize: 11,
+                  typography: 'micro',
                   fontWeight: 700,
                   letterSpacing: '0.08em',
                   mb: 1,
@@ -119,7 +119,7 @@ function LinkPreviewSidebar({
                   borderRadius: 0.75,
                   color: 'text.primary',
                   fontFamily: 'var(--font-sans)',
-                  fontSize: 12,
+                  typography: 'bodyXs',
                   lineHeight: 1.5,
                   overflowWrap: 'anywhere',
                   p: 1.5,
@@ -133,7 +133,7 @@ function LinkPreviewSidebar({
               <Typography
                 sx={ {
                   color: 'text.secondary',
-                  fontSize: 11,
+                  typography: 'micro',
                   fontWeight: 700,
                   letterSpacing: '0.08em',
                   mb: 1,
@@ -158,7 +158,7 @@ function LinkPreviewSidebar({
               <Typography
                 sx={ {
                   color: 'text.disabled',
-                  fontSize: 10,
+                  typography: 'microTight',
                   mt: 0.75,
                 } }
               >
@@ -227,7 +227,7 @@ function LinkPreviewSidebar({
           <Typography
             sx={ {
               color: 'error.main',
-              fontSize: 12,
+              typography: 'bodyXs',
               textAlign: 'center',
             } }
           >
@@ -238,7 +238,7 @@ function LinkPreviewSidebar({
           <Typography
             sx={ {
               color: 'error.main',
-              fontSize: 12,
+              typography: 'bodyXs',
               textAlign: 'center',
             } }
           >
@@ -249,7 +249,7 @@ function LinkPreviewSidebar({
           <Typography
             sx={ {
               color: createFeedback.status === 'success' ? 'success.main' : 'error.main',
-              fontSize: 12,
+              typography: 'bodyXs',
               textAlign: 'center',
             } }
           >

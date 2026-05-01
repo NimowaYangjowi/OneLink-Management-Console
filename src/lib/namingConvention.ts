@@ -22,6 +22,8 @@ export interface NamingConventionValidationError {
   expected?: string;
   field: NamingConventionTargetField;
   message: string;
+  ruleId?: string;
+  ruleName?: string;
   slotIndex?: number;
   slotLabel?: string;
 }
@@ -438,7 +440,7 @@ export function validateValueAgainstRule(
  */
 export function validateOneLinkDataByNamingRules(
   oneLinkData: Record<string, string>,
-  rules: Partial<Record<NamingConventionTargetField, NamingConventionRule>>,
+  rules: Partial<Record<NamingConventionTargetField, NamingConventionRule[]>>,
 ): {
   errors: NamingConventionValidationError[];
   normalizedData: Record<string, string>;
@@ -447,23 +449,45 @@ export function validateOneLinkDataByNamingRules(
   const errors: NamingConventionValidationError[] = [];
   const normalizedData = { ...oneLinkData };
 
-  Object.values(rules).forEach((rule) => {
-    if (!rule || !rule.enabled) {
+  Object.entries(rules).forEach(([field, fieldRules]) => {
+    if (!Array.isArray(fieldRules) || fieldRules.length === 0) {
       return;
     }
 
-    const rawValue = oneLinkData[rule.field];
+    const enabledRules = fieldRules.filter((rule) => rule.enabled && rule.slots.length > 0);
+    if (enabledRules.length === 0) {
+      return;
+    }
+
+    const rawValue = oneLinkData[field];
     if (typeof rawValue !== 'string' || !rawValue.trim()) {
       return;
     }
 
-    const result = validateValueAgainstRule(rule, rawValue);
-    if (!result.valid) {
-      errors.push(...result.errors);
+    for (let index = 0; index < enabledRules.length; index += 1) {
+      const rule = enabledRules[index];
+      if (!rule) {
+        continue;
+      }
+
+      const result = validateValueAgainstRule(rule, rawValue);
+      if (!result.valid) {
+        if (index === enabledRules.length - 1) {
+          errors.push(
+            ...result.errors.map((error) => ({
+              ...error,
+              message: `[${rule.name}] ${error.message}`,
+              ruleId: rule.id,
+              ruleName: rule.name,
+            })),
+          );
+        }
+        continue;
+      }
+
+      normalizedData[field] = composeValueFromSlots(rule, result.normalizedSlots);
       return;
     }
-
-    normalizedData[rule.field] = composeValueFromSlots(rule, result.normalizedSlots);
   });
 
   return {

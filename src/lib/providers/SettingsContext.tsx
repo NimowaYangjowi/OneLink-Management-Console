@@ -62,7 +62,7 @@ type SettingsAction =
   | { type: 'ADD_PRESET'; field: PresetField; value: string }
   | { type: 'REMOVE_PRESET'; field: PresetField; value: string }
   | { type: 'UPSERT_NAMING_RULE'; field: NamingConventionTargetField; rule: NamingConventionRule }
-  | { type: 'REMOVE_NAMING_RULE'; field: NamingConventionTargetField }
+  | { type: 'REMOVE_NAMING_RULE'; field: NamingConventionTargetField; ruleId: string }
   | { type: 'SET_NAMING_ENFORCEMENT_MODE'; mode: NamingRuleEnforcementMode }
   | { type: 'HYDRATE'; state: SettingsState };
 
@@ -77,8 +77,9 @@ interface SettingsContextValue {
   removePreset: (field: PresetField, value: string) => void;
   getPresets: (field: PresetField) => string[];
   upsertNamingConventionRule: (field: NamingConventionTargetField, rule: NamingConventionRule) => void;
-  removeNamingConventionRule: (field: NamingConventionTargetField) => void;
-  getNamingConventionRule: (field: NamingConventionTargetField) => NamingConventionRule | null;
+  removeNamingConventionRule: (field: NamingConventionTargetField, ruleId: string) => void;
+  getNamingConventionRules: (field: NamingConventionTargetField) => NamingConventionRule[];
+  getPrimaryNamingConventionRule: (field: NamingConventionTargetField) => NamingConventionRule | null;
   setNamingConventionEnforcementMode: (mode: NamingRuleEnforcementMode) => void;
   validateTemplateId: (id: string) => { valid: boolean; error?: string };
 }
@@ -187,19 +188,35 @@ function settingsReducer(state: SettingsState, action: SettingsAction): Settings
         },
       };
     case 'UPSERT_NAMING_RULE':
-      return {
-        ...state,
-        namingConvention: {
-          ...state.namingConvention,
-          rules: {
-            ...state.namingConvention.rules,
-            [action.field]: sanitizeNamingConventionRule(action.rule, action.field),
+      {
+        const sanitizedRule = sanitizeNamingConventionRule(action.rule, action.field);
+        const currentRules = state.namingConvention.rules[action.field] ?? [];
+        const existingIndex = currentRules.findIndex((rule) => rule.id === sanitizedRule.id);
+        const nextRules = existingIndex >= 0
+          ? currentRules.map((rule, index) => (index === existingIndex ? sanitizedRule : rule))
+          : [...currentRules, sanitizedRule];
+
+        return {
+          ...state,
+          namingConvention: {
+            ...state.namingConvention,
+            rules: {
+              ...state.namingConvention.rules,
+              [action.field]: nextRules,
+            },
           },
-        },
-      };
+        };
+      }
     case 'REMOVE_NAMING_RULE': {
+      const currentRules = state.namingConvention.rules[action.field] ?? [];
+      const filteredRules = currentRules.filter((rule) => rule.id !== action.ruleId);
       const nextRules = { ...state.namingConvention.rules };
-      delete nextRules[action.field];
+      if (filteredRules.length > 0) {
+        nextRules[action.field] = filteredRules;
+      } else {
+        delete nextRules[action.field];
+      }
+
       return {
         ...state,
         namingConvention: {
@@ -383,12 +400,25 @@ export function SettingsProvider({
     [],
   );
 
-  const removeNamingConventionRule = useCallback((field: NamingConventionTargetField) => {
-    dispatch({ type: 'REMOVE_NAMING_RULE', field });
+  const removeNamingConventionRule = useCallback((field: NamingConventionTargetField, ruleId: string) => {
+    dispatch({ type: 'REMOVE_NAMING_RULE', field, ruleId });
   }, []);
 
-  const getNamingConventionRule = useCallback(
-    (field: NamingConventionTargetField): NamingConventionRule | null => settings.namingConvention.rules[field] ?? null,
+  const getNamingConventionRules = useCallback(
+    (field: NamingConventionTargetField): NamingConventionRule[] => settings.namingConvention.rules[field] ?? [],
+    [settings.namingConvention.rules],
+  );
+
+  const getPrimaryNamingConventionRule = useCallback(
+    (field: NamingConventionTargetField): NamingConventionRule | null => {
+      const rules = settings.namingConvention.rules[field] ?? [];
+      if (rules.length === 0) {
+        return null;
+      }
+
+      const enabledRule = rules.find((rule) => rule.enabled && rule.slots.length > 0);
+      return enabledRule ?? rules[0] ?? null;
+    },
     [settings.namingConvention.rules],
   );
 
@@ -409,7 +439,8 @@ export function SettingsProvider({
       getPresets,
       upsertNamingConventionRule,
       removeNamingConventionRule,
-      getNamingConventionRule,
+      getNamingConventionRules,
+      getPrimaryNamingConventionRule,
       setNamingConventionEnforcementMode,
       validateTemplateId,
     }),
@@ -425,7 +456,8 @@ export function SettingsProvider({
       getPresets,
       upsertNamingConventionRule,
       removeNamingConventionRule,
-      getNamingConventionRule,
+      getNamingConventionRules,
+      getPrimaryNamingConventionRule,
       setNamingConventionEnforcementMode,
       validateTemplateId,
     ]

@@ -93,10 +93,10 @@ function LinkPreviewPanel({
         } }
       >
         <Stack spacing={ 1.5 } sx={ { height: '100%', overflowY: 'auto', pr: 0.25 } }>
-          <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'bodyLg', fontWeight: 700 } }>
             Link Group Overview
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 12, lineHeight: 1.55 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'bodyXs', lineHeight: 1.55 } }>
             Link Group is a unit that groups OneLinks created for the same purpose. Once you create a group, you can
             manage link creation and operations with consistent standards.
           </Typography>
@@ -106,7 +106,7 @@ function LinkPreviewPanel({
             sx={ {
               color: 'text.secondary',
               display: 'grid',
-              fontSize: 12,
+              typography: 'bodyXs',
               gap: 1,
               lineHeight: 1.5,
               m: 0,
@@ -124,7 +124,7 @@ function LinkPreviewPanel({
             </Box>
           </Box>
           <Divider />
-          <Typography sx={ { color: 'text.secondary', fontSize: 12, lineHeight: 1.5 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'bodyXs', lineHeight: 1.5 } }>
             The group information entered in this step becomes the baseline for link defaults in the next steps.
           </Typography>
         </Stack>
@@ -150,10 +150,10 @@ function LinkPreviewPanel({
       } }
     >
       <Stack spacing={ 1.5 } sx={ { height: '100%', overflowY: 'auto', pr: 0.25 } }>
-        <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
+        <Typography sx={ { color: 'text.primary', typography: 'bodyLg', fontWeight: 700 } }>
           Link Preview
         </Typography>
-        <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
           {activeStep === 0
             ? 'Base URL skeleton preview from template and brand domain.'
             : activeStep === 3
@@ -262,7 +262,7 @@ function LinkPreviewPanel({
           )}
         </Box>
         <Divider />
-        <Typography sx={ { color: 'text.secondary', fontSize: 12, textAlign: 'right' } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs', textAlign: 'right' } }>
           {leafPathCount === 0
             ? '0 of 0 links'
             : activeStep === 1 && activeSnippetNodeValue

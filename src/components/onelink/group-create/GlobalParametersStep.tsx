@@ -62,13 +62,13 @@ function GlobalParametersStep({
   return (
     <Stack spacing={ 1.5 }>
       <Stack spacing={ 0.5 }>
-        <Typography sx={ { color: 'text.primary', fontSize: 18, fontWeight: 700 } }>
+        <Typography sx={ { color: 'text.primary', typography: 'headlineSm', fontWeight: 700 } }>
           Link Parameters
         </Typography>
-        <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
           Configure default deep-link behavior and optional extra query parameters for this link group.
         </Typography>
-        <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
           {scopeHint}
         </Typography>
       </Stack>
@@ -89,11 +89,11 @@ function GlobalParametersStep({
         } }
       >
         <AccordionSummary expandIcon={ <ExpandMoreIcon /> } sx={ { px: 0.5 } }>
-          <Typography sx={ { fontSize: 14, fontWeight: 700 } }>Retargeting</Typography>
+          <Typography sx={ { typography: 'bodyMd', fontWeight: 700 } }>Retargeting</Typography>
         </AccordionSummary>
         <AccordionDetails sx={ { px: 0.5, pt: 0, pb: 1.5 } }>
           <Stack spacing={ 1.25 }>
-            <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+            <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
               Keep this enabled for consistent retargeting attribution.
             </Typography>
             <Divider />
@@ -129,11 +129,11 @@ function GlobalParametersStep({
         } }
       >
         <AccordionSummary expandIcon={ <ExpandMoreIcon /> } sx={ { px: 0.5 } }>
-          <Typography sx={ { fontSize: 14, fontWeight: 700 } }>Deep Linking &amp; Redirection</Typography>
+          <Typography sx={ { typography: 'bodyMd', fontWeight: 700 } }>Deep Linking &amp; Redirection</Typography>
         </AccordionSummary>
         <AccordionDetails sx={ { px: 0.5, pt: 0, pb: 1.5 } }>
           <Stack spacing={ 1.25 }>
-            <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+            <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
               These parameters are always available for group-level defaults.
             </Typography>
             <Divider />
@@ -204,11 +204,11 @@ function GlobalParametersStep({
         } }
       >
         <AccordionSummary expandIcon={ <ExpandMoreIcon /> } sx={ { px: 0.5 } }>
-          <Typography sx={ { fontSize: 14, fontWeight: 700 } }>Additional Parameters</Typography>
+          <Typography sx={ { typography: 'bodyMd', fontWeight: 700 } }>Additional Parameters</Typography>
         </AccordionSummary>
         <AccordionDetails sx={ { px: 0.5, pt: 0, pb: 1.5 } }>
           <Stack spacing={ 1.25 }>
-            <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+            <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
               Add custom key-value pairs for any extra tracking context.
             </Typography>
             <Divider />

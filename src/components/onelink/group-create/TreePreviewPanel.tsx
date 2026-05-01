@@ -191,7 +191,7 @@ function TreePreviewPanel({
     >
       <Stack spacing={ 1 }>
         <Stack alignItems='center' direction='row' justifyContent='space-between'>
-          <Typography sx={ { color: 'text.primary', fontSize: 15, fontWeight: 700 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'bodyLg', fontWeight: 700 } }>
             Tree Preview
           </Typography>
           <Button
@@ -203,7 +203,7 @@ function TreePreviewPanel({
             {treePreviewExpanded ? 'Collapse' : 'Expand'}
           </Button>
         </Stack>
-        <Typography sx={ { color: leafCount > 2000 ? 'error.main' : 'text.secondary', fontSize: 12 } }>
+        <Typography sx={ { color: leafCount > 2000 ? 'error.main' : 'text.secondary', typography: 'bodyXs' } }>
           {`Leaf paths: ${leafCount} · Max depth: ${maxDepth} · Total nodes: ${totalNodeCount}`}
         </Typography>
         {treePreviewExpanded && (
@@ -240,7 +240,7 @@ function TreePreviewPanel({
                         zIndex: 1,
                       } }
                     >
-                      <Typography sx={ { color: 'text.secondary', fontSize: 11, fontWeight: 700 } }>
+                      <Typography sx={ { color: 'text.secondary', typography: 'micro', fontWeight: 700 } }>
                         Path
                       </Typography>
                     </Box>
@@ -272,7 +272,7 @@ function TreePreviewPanel({
                                 sx={ { pl: row.depth * 1.5 } }
                               >
                                 {row.isLeaf ? (
-                                  <Typography sx={ { color: 'text.disabled', fontSize: 11, pt: 0.1 } }>
+                                  <Typography sx={ { color: 'text.disabled', typography: 'micro', pt: 0.1 } }>
                                     •
                                   </Typography>
                                 ) : (
@@ -298,7 +298,7 @@ function TreePreviewPanel({
                                       border: 'none',
                                       color: 'text.secondary',
                                       cursor: 'pointer',
-                                      fontSize: 11,
+                                      typography: 'micro',
                                       lineHeight: 1,
                                       p: 0,
                                     } }
@@ -310,7 +310,7 @@ function TreePreviewPanel({
                                 <Typography
                                   sx={ {
                                     color: 'text.primary',
-                                    fontSize: 12,
+                                    typography: 'bodyXs',
                                     fontWeight: row.isLeaf ? 500 : 600,
                                     whiteSpace: 'nowrap',
                                   } }
@@ -338,7 +338,7 @@ function TreePreviewPanel({
                         zIndex: 1,
                       } }
                     >
-                      <Typography sx={ { color: 'text.secondary', fontSize: 11, fontWeight: 700 } }>
+                      <Typography sx={ { color: 'text.secondary', typography: 'micro', fontWeight: 700 } }>
                         URL
                       </Typography>
                     </Box>
@@ -364,8 +364,8 @@ function TreePreviewPanel({
                             <Typography
                               sx={ {
                                 color: row.isLeaf ? 'text.primary' : 'text.secondary',
-                                fontFamily: row.isLeaf ? 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)' : 'inherit',
-                                fontSize: 11,
+                                fontFamily: row.isLeaf ? 'var(--font-mono)' : 'var(--font-sans)',
+                                typography: 'micro',
                                 whiteSpace: 'nowrap',
                               } }
                               title={ row.urlText }
@@ -379,13 +379,13 @@ function TreePreviewPanel({
                   </Stack>
                 </Box>
               ) : (
-                <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                   No tree or links available yet.
                 </Typography>
               )}
             </Box>
             {hiddenRowCount > 0 && (
-              <Typography sx={ { color: 'text.secondary', fontSize: 11, textAlign: 'right' } }>
+              <Typography sx={ { color: 'text.secondary', typography: 'micro', textAlign: 'right' } }>
                 {`+${hiddenRowCount} more rows`}
               </Typography>
             )}

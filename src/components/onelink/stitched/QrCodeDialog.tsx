@@ -27,7 +27,7 @@ function QrCodeDialog({
 }) {
   return (
     <Dialog fullWidth maxWidth='sm' onClose={ onClose } open={ isOpen }>
-      <DialogTitle sx={ { fontSize: 18, fontWeight: 600 } }>QR Code Preview</DialogTitle>
+      <DialogTitle sx={ { typography: 'headlineSm', fontWeight: 600 } }>QR Code Preview</DialogTitle>
       <DialogContent>
         <Stack spacing={ 2 } sx={ { alignItems: 'center', pb: 1 } }>
           <Box
@@ -43,7 +43,7 @@ function QrCodeDialog({
               width: { sm: 360, xs: 280 },
             } }
           />
-          <Typography sx={ { color: 'text.secondary', fontSize: 12, textAlign: 'center' } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'bodyXs', textAlign: 'center' } }>
             Scan to open the generated short link.
           </Typography>
         </Stack>

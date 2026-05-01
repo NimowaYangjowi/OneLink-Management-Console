@@ -16,6 +16,7 @@ import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
 import type { ClipboardEvent, KeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { LinkGroupNodeLevel } from '@/lib/onelinkGroupTypes';
+import type { NamingConventionRule } from '@/lib/providers/SettingsContext';
 import { formatLevelLabel } from './treeUtils';
 import NodeList, { type NodeListProps } from './NodeList';
 import type { EditorTreeNode } from './types';
@@ -23,9 +24,13 @@ import type { EditorTreeNode } from './types';
 type TreeBuilderStepProps = {
   addCurrentLevelValues: (rawInputOverride?: string) => void;
   inputDraftValue: string;
+  inputNamingPlaceholder: string;
+  inputNamingRuleOptions: NamingConventionRule[];
   inputPresetOptions: string[];
+  inputSelectedNamingRuleId: string;
   inputTargetLevel: LinkGroupNodeLevel | null;
   nodeListProps: Omit<NodeListProps, 'nodes'>;
+  onInputNamingRuleChange: (ruleId: string) => void;
   onInputDraftChange: (value: string) => void;
   onInputFieldFocus: () => void;
   roots: EditorTreeNode[];
@@ -33,12 +38,18 @@ type TreeBuilderStepProps = {
   selectedNodeLevel: LinkGroupNodeLevel | null;
 };
 
+const NAMING_RULE_OPTION_PREFIX = '[Naming Rule] ';
+
 function TreeBuilderStep({
   addCurrentLevelValues,
   inputDraftValue,
+  inputNamingPlaceholder,
+  inputNamingRuleOptions,
   inputPresetOptions,
+  inputSelectedNamingRuleId,
   inputTargetLevel,
   nodeListProps,
+  onInputNamingRuleChange,
   onInputDraftChange,
   onInputFieldFocus,
   roots,
@@ -91,6 +102,13 @@ function TreeBuilderStep({
     reason: AutocompleteChangeReason,
   ) => {
     if (reason === 'selectOption' && nextValue) {
+      if (nextValue.startsWith(NAMING_RULE_OPTION_PREFIX)) {
+        const selectedOption = inputNamingRuleOptions.find(
+          (rule) => `${NAMING_RULE_OPTION_PREFIX}${rule.name}` === nextValue,
+        );
+        onInputNamingRuleChange(selectedOption?.id ?? '');
+        return;
+      }
       addCurrentLevelValues(nextValue);
       setIsPresetDropdownOpen(false);
       return;
@@ -125,12 +143,19 @@ function TreeBuilderStep({
       helpCloseTimeoutRef.current = null;
     }
   }, []);
+  const selectedNamingRule = inputNamingRuleOptions.find((rule) => rule.id === inputSelectedNamingRuleId) ?? null;
+  const namingRuleHelperText = selectedNamingRule
+    ? `Rule: ${selectedNamingRule.name} · Template: ${inputNamingPlaceholder || '-'}` : helperText;
+  const mergedDropdownOptions = [
+    ...inputNamingRuleOptions.map((rule) => `${NAMING_RULE_OPTION_PREFIX}${rule.name}`),
+    ...inputPresetOptions,
+  ];
 
   return (
     <Stack spacing={ 1.5 }>
       <Stack spacing={ 0.5 }>
         <Stack alignItems='center' direction='row' spacing={ 0.35 }>
-          <Typography sx={ { color: 'text.primary', fontSize: 18, fontWeight: 700 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'headlineSm', fontWeight: 700 } }>
             Build Tree
           </Typography>
           <IconButton
@@ -143,7 +168,7 @@ function TreeBuilderStep({
             <HelpOutlineRoundedIcon fontSize='small' />
           </IconButton>
         </Stack>
-        <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
           Add media sources and expand campaign levels to define link generation paths.
         </Typography>
       </Stack>
@@ -166,28 +191,28 @@ function TreeBuilderStep({
         transformOrigin={ { horizontal: 'right', vertical: 'top' } }
       >
         <Stack spacing={ 0.5 }>
-          <Typography sx={ { color: 'text.primary', fontSize: 12, fontWeight: 700 } }>
+          <Typography sx={ { color: 'text.primary', typography: 'bodyXs', fontWeight: 700 } }>
             Build Tree Tips
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
             1. Place cursor in the field and paste; values are auto-split and added.
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
             2. Add Media Source values first.
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
             3. Select chips, then add the next level.
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
             4. Shift+Click: range select in one level.
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
             5. Drag blank area: lasso select.
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
             6. Shift/Alt/Cmd(Ctrl)+Drag: add/remove/toggle.
           </Typography>
-          <Typography sx={ { color: 'text.secondary', fontSize: 11 } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'micro' } }>
             7. Delete with X twice to confirm.
           </Typography>
         </Stack>
@@ -206,7 +231,7 @@ function TreeBuilderStep({
           onChange={ (_, nextValue, reason) => handlePresetChange(nextValue, reason) }
           onClose={ () => setIsPresetDropdownOpen(false) }
           onInputChange={ (_, inputValue, reason) => {
-            if (reason === 'reset') {
+            if (reason === 'reset' || reason === 'selectOption') {
               return;
             }
             onInputDraftChange(inputValue);
@@ -229,13 +254,14 @@ function TreeBuilderStep({
             setIsPresetDropdownOpen(false);
           } }
           open={ !isLeafSelection && isPresetDropdownOpen }
-          options={ inputPresetOptions }
+          options={ mergedDropdownOptions }
           renderInput={ (params) => (
             <TextField
               { ...params }
-              helperText={ helperText }
+              helperText={ namingRuleHelperText }
               label={ isLeafSelection ? `Add ${selectedLevelLabel}` : `Add ${inputTargetLabel}` }
               onFocus={ onInputFieldFocus }
+              placeholder={ inputNamingPlaceholder || undefined }
               size='small'
             />
           ) }
@@ -264,7 +290,7 @@ function TreeBuilderStep({
         <Alert severity='info'>Add at least one MediaSource to begin the tree.</Alert>
       )}
       {selectedNodeCount > 0 && (
-        <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
           {`${selectedNodeCount} ${selectedLevelLabel} ${selectedNodeCount > 1 ? 'chips' : 'chip'} selected`}
         </Typography>
       )}

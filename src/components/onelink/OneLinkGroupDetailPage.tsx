@@ -403,10 +403,10 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
             >
               <Stack direction={ { md: 'row', xs: 'column' } } justifyContent='space-between' spacing={ 1.5 }>
                 <Stack spacing={ 0.5 }>
-                  <Typography sx={ { color: 'text.primary', fontSize: 18, fontWeight: 700 } }>
+                  <Typography sx={ { color: 'text.primary', typography: 'headlineSm', fontWeight: 700 } }>
                     {detail.name}
                   </Typography>
-                  <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                  <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                     {detail.id}
                   </Typography>
                   <Stack direction='row' spacing={ 1 }>
@@ -416,13 +416,13 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
                 </Stack>
 
                 <Stack alignItems={ { md: 'flex-end', xs: 'flex-start' } } spacing={ 0.5 }>
-                  <Typography sx={ { color: 'text.primary', fontSize: 13 } }>
+                  <Typography sx={ { color: 'text.primary', typography: 'bodySm' } }>
                     Planned: {detail.plannedCount}
                   </Typography>
-                  <Typography sx={ { color: 'success.main', fontSize: 13 } }>
+                  <Typography sx={ { color: 'success.main', typography: 'bodySm' } }>
                     Success: {detail.successCount}
                   </Typography>
-                  <Typography sx={ { color: 'error.main', fontSize: 13 } }>
+                  <Typography sx={ { color: 'error.main', typography: 'bodySm' } }>
                     Failed: {detail.failedCount}
                   </Typography>
                 </Stack>
@@ -518,7 +518,7 @@ function OneLinkGroupDetailPage({ groupId }: LinkGroupDetailPageProps) {
                           component='a'
                           href={ item.shortLink }
                           rel='noreferrer'
-                          sx={ { color: 'primary.main', fontSize: 12, wordBreak: 'break-all' } }
+                          sx={ { color: 'primary.main', typography: 'bodyXs', wordBreak: 'break-all' } }
                           target='_blank'
                         >
                           {item.shortLink}

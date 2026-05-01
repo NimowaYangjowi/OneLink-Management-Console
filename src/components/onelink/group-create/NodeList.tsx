@@ -184,7 +184,7 @@ function NodeList({
 
   return (
     <Stack spacing={ 1.25 }>
-      <Typography sx={ { color: 'text.secondary', fontSize: 12, fontWeight: 700 } }>
+      <Typography sx={ { color: 'text.secondary', typography: 'bodyXs', fontWeight: 700 } }>
         {LEVEL_HEADER_LABEL[nodes[0].level]}
       </Typography>
       {collapsedNodes.length > 0 && (

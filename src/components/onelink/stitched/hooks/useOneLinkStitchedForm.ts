@@ -5,11 +5,11 @@
 import { useEffect, useMemo, useState, type SyntheticEvent } from 'react';
 import {
   composeValueFromSlots,
-  splitValueToSlots,
-  validateSlotValues,
+  validateValueAgainstRule,
   type NamingConventionValidationError,
 } from '@/lib/namingConvention';
 import { validateOneLinkRedirectUrl } from '@/lib/onelinkLinksSchema';
+import type { NamingConventionRule } from '@/lib/providers/SettingsContext';
 import { useSettings } from '@/lib/providers/SettingsContext';
 import { MAPPED_ONELINK_FIELDS, toBooleanFlag } from '@/components/onelink/stitched/constants';
 import type {
@@ -20,6 +20,44 @@ import type {
 } from '@/components/onelink/stitched/types';
 
 type UseOneLinkStitchedFormArgs = Pick<OneLinkStitchedPageProps, 'creationType' | 'mode' | 'recordId'>;
+type NamingRuleField = 'c' | 'af_adset' | 'af_ad';
+
+type NamingValidationSummary = {
+  errorMessage: string;
+  isValid: boolean;
+  normalizedValue: string;
+};
+
+const NAMING_RULE_FIELDS: NamingRuleField[] = ['c', 'af_adset', 'af_ad'];
+
+function normalizeByRule(
+  rule: NamingConventionRule | null,
+  rawValue: string,
+): NamingValidationSummary {
+  const trimmedValue = rawValue.trim();
+  if (!rule || !trimmedValue) {
+    return {
+      errorMessage: '',
+      isValid: true,
+      normalizedValue: trimmedValue,
+    };
+  }
+
+  const result = validateValueAgainstRule(rule, trimmedValue);
+  if (!result.valid) {
+    return {
+      errorMessage: result.errors[0]?.message ?? 'Value does not match selected naming rule.',
+      isValid: false,
+      normalizedValue: trimmedValue,
+    };
+  }
+
+  return {
+    errorMessage: '',
+    isValid: true,
+    normalizedValue: composeValueFromSlots(rule, result.normalizedSlots),
+  };
+}
 
 export function useOneLinkStitchedForm({
   creationType = 'single_link',
@@ -31,8 +69,6 @@ export function useOneLinkStitchedForm({
 
   const [templateId, setTemplateId] = useState('');
   const [campaignName, setCampaignName] = useState('');
-  const [campaignSlotValues, setCampaignSlotValues] = useState<string[]>([]);
-  const [campaignRuleWarning, setCampaignRuleWarning] = useState('');
   const [deepLinkUri, setDeepLinkUri] = useState('');
   const [desktopFallbackUrl, setDesktopFallbackUrl] = useState('');
   const [iosFallbackUrl, setIosFallbackUrl] = useState('');
@@ -63,6 +99,11 @@ export function useOneLinkStitchedForm({
   const [isCreating, setIsCreating] = useState(false);
   const [showRequiredValidation, setShowRequiredValidation] = useState(false);
   const [isInitialLoadPending, setIsInitialLoadPending] = useState(isEditMode);
+  const [selectedNamingRuleIds, setSelectedNamingRuleIds] = useState<Record<NamingRuleField, string>>({
+    c: '',
+    af_adset: '',
+    af_ad: '',
+  });
 
   const resolvedTemplateId = useMemo(() => {
     const normalized = templateId.trim();
@@ -130,26 +171,72 @@ export function useOneLinkStitchedForm({
   );
   const ogImageOptions = useMemo(() => settings.presets.af_og_image, [settings.presets.af_og_image]);
 
-  const campaignRule = useMemo(
-    () => settings.namingConvention.rules.c ?? null,
+  const campaignNamingRules = useMemo(
+    () => (settings.namingConvention.rules.c ?? []).filter((rule) => rule.enabled && rule.slots.length > 0),
     [settings.namingConvention.rules.c],
   );
-  const isCampaignRuleEnabled = Boolean(campaignRule?.enabled && campaignRule.slots.length > 0);
-  const isCampaignRuleStrict = settings.namingConvention.enforcementMode === 'strict';
+  const adSetNamingRules = useMemo(
+    () => (settings.namingConvention.rules.af_adset ?? []).filter((rule) => rule.enabled && rule.slots.length > 0),
+    [settings.namingConvention.rules.af_adset],
+  );
+  const adNameNamingRules = useMemo(
+    () => (settings.namingConvention.rules.af_ad ?? []).filter((rule) => rule.enabled && rule.slots.length > 0),
+    [settings.namingConvention.rules.af_ad],
+  );
+
+  const namingRulesByField = useMemo<Record<NamingRuleField, NamingConventionRule[]>>(
+    () => ({
+      c: campaignNamingRules,
+      af_adset: adSetNamingRules,
+      af_ad: adNameNamingRules,
+    }),
+    [adNameNamingRules, adSetNamingRules, campaignNamingRules],
+  );
 
   useEffect(() => {
-    if (!isCampaignRuleEnabled || !campaignRule) {
-      setCampaignSlotValues([]);
-      setCampaignRuleWarning('');
-      return;
-    }
+    setSelectedNamingRuleIds((previous) => {
+      let changed = false;
+      const nextState = { ...previous };
 
-    setCampaignSlotValues((previous) => (
-      previous.length === campaignRule.slots.length
-        ? previous
-        : campaignRule.slots.map(() => '')
-    ));
-  }, [campaignRule, isCampaignRuleEnabled]);
+      NAMING_RULE_FIELDS.forEach((field) => {
+        const fieldRules = namingRulesByField[field];
+        const isCurrentValid = fieldRules.some((rule) => rule.id === previous[field]);
+        if (isCurrentValid) {
+          return;
+        }
+
+        const fallbackRuleId = '';
+        if (previous[field] !== fallbackRuleId) {
+          changed = true;
+          nextState[field] = '';
+        }
+      });
+
+      return changed ? nextState : previous;
+    });
+  }, [namingRulesByField]);
+
+  const setSelectedNamingRuleId = (field: NamingRuleField, ruleId: string) => {
+    setSelectedNamingRuleIds((previous) => ({
+      ...previous,
+      [field]: ruleId,
+    }));
+  };
+
+  const selectedCampaignRule = useMemo(
+    () => campaignNamingRules.find((rule) => rule.id === selectedNamingRuleIds.c) ?? null,
+    [campaignNamingRules, selectedNamingRuleIds.c],
+  );
+  const selectedAdSetRule = useMemo(
+    () => adSetNamingRules.find((rule) => rule.id === selectedNamingRuleIds.af_adset) ?? null,
+    [adSetNamingRules, selectedNamingRuleIds.af_adset],
+  );
+  const selectedAdNameRule = useMemo(
+    () => adNameNamingRules.find((rule) => rule.id === selectedNamingRuleIds.af_ad) ?? null,
+    [adNameNamingRules, selectedNamingRuleIds.af_ad],
+  );
+
+  const isNamingRuleStrict = settings.namingConvention.enforcementMode === 'strict';
 
   useEffect(() => {
     if (!isEditMode) {
@@ -206,22 +293,7 @@ export function useOneLinkStitchedForm({
         setDismissedAutoBrandDomainTemplateId('');
         setShortLinkId(payload.remote?.shortLinkId || '');
         setMediaSource(remoteData.pid || record.mediaSource || '');
-        const loadedCampaignName = remoteData.c || record.campaignName || '';
-        setCampaignName(loadedCampaignName);
-        if (isCampaignRuleEnabled && campaignRule) {
-          const parsedSlots = splitValueToSlots(campaignRule, loadedCampaignName);
-          if (parsedSlots.length === campaignRule.slots.length) {
-            setCampaignSlotValues(parsedSlots);
-            setCampaignRuleWarning('');
-          } else if (loadedCampaignName.trim()) {
-            setCampaignSlotValues(campaignRule.slots.map(() => ''));
-            setCampaignRuleWarning(
-              'Existing campaign value does not match current slot rule. Update slot values before saving in strict mode.',
-            );
-          }
-        } else {
-          setCampaignRuleWarning('');
-        }
+        setCampaignName(remoteData.c || record.campaignName || '');
         setAdSet(remoteData.af_adset || '');
         setAdName(remoteData.af_ad || '');
         setChannel(remoteData.af_channel || record.channel || '');
@@ -263,52 +335,30 @@ export function useOneLinkStitchedForm({
     return () => {
       isMounted = false;
     };
-  }, [campaignRule, isCampaignRuleEnabled, isEditMode, recordId]);
+  }, [isEditMode, recordId]);
 
-  const handleCampaignSlotChange = (slotIndex: number, value: string) => {
-    setCampaignSlotValues((previous) => {
-      const nextValues = [...previous];
-      nextValues[slotIndex] = value;
+  const campaignNamingValidation = useMemo(
+    () => normalizeByRule(selectedCampaignRule, campaignName),
+    [campaignName, selectedCampaignRule],
+  );
+  const adSetNamingValidation = useMemo(
+    () => normalizeByRule(selectedAdSetRule, adSet),
+    [adSet, selectedAdSetRule],
+  );
+  const adNameNamingValidation = useMemo(
+    () => normalizeByRule(selectedAdNameRule, adName),
+    [adName, selectedAdNameRule],
+  );
 
-      if (campaignRule) {
-        setCampaignName(composeValueFromSlots(campaignRule, nextValues));
-      }
-
-      return nextValues;
-    });
-    setCampaignRuleWarning('');
-  };
-
-  const campaignSlotValidation = useMemo(() => {
-    if (!isCampaignRuleEnabled || !campaignRule) {
-      return { errors: [], normalizedSlots: [], valid: true };
-    }
-
-    return validateSlotValues(campaignRule, campaignSlotValues);
-  }, [campaignRule, campaignSlotValues, isCampaignRuleEnabled]);
-
-  const campaignSlotErrors = useMemo(() => {
-    if (!isCampaignRuleEnabled || !campaignRule) {
-      return [] as string[];
-    }
-
-    const slotErrorByIndex = new Map<number, string>();
-    campaignSlotValidation.errors.forEach((error) => {
-      if (typeof error.slotIndex !== 'number' || slotErrorByIndex.has(error.slotIndex)) {
-        return;
-      }
-      slotErrorByIndex.set(error.slotIndex, error.message);
-    });
-
-    return campaignRule.slots.map((_, index) => slotErrorByIndex.get(index + 1) ?? '');
-  }, [campaignRule, campaignSlotValidation.errors, isCampaignRuleEnabled]);
-
-  const campaignComposedValue = useMemo(() => {
-    if (!isCampaignRuleEnabled || !campaignRule) {
-      return campaignName;
-    }
-    return composeValueFromSlots(campaignRule, campaignSlotValues);
-  }, [campaignName, campaignRule, campaignSlotValues, isCampaignRuleEnabled]);
+  const campaignRuleErrorMessage = selectedCampaignRule && !campaignNamingValidation.isValid
+    ? campaignNamingValidation.errorMessage
+    : '';
+  const adSetRuleErrorMessage = selectedAdSetRule && !adSetNamingValidation.isValid
+    ? adSetNamingValidation.errorMessage
+    : '';
+  const adNameRuleErrorMessage = selectedAdNameRule && !adNameNamingValidation.isValid
+    ? adNameNamingValidation.errorMessage
+    : '';
 
   const shortLink = useMemo(() => {
     const resolvedShortLinkId = shortLinkId.trim() || 'short-link-id';
@@ -318,13 +368,21 @@ export function useOneLinkStitchedForm({
   const oneLinkData = useMemo(() => {
     const payload: Record<string, string> = {};
     if (mediaSource.trim()) payload.pid = mediaSource.trim();
-    if (campaignComposedValue.trim()) {
-      payload.c = isCampaignRuleEnabled
-        ? campaignComposedValue.trim()
-        : campaignComposedValue.trim().replaceAll(' ', '_');
+    if (campaignName.trim()) {
+      payload.c = selectedCampaignRule
+        ? campaignNamingValidation.normalizedValue
+        : campaignName.trim().replaceAll(' ', '_');
     }
-    if (adSet.trim()) payload.af_adset = adSet.trim();
-    if (adName.trim()) payload.af_ad = adName.trim();
+    if (adSet.trim()) {
+      payload.af_adset = selectedAdSetRule
+        ? adSetNamingValidation.normalizedValue
+        : adSet.trim();
+    }
+    if (adName.trim()) {
+      payload.af_ad = selectedAdNameRule
+        ? adNameNamingValidation.normalizedValue
+        : adName.trim();
+    }
     if (channel.trim()) payload.af_channel = channel.trim();
     if (deepLinkUri.trim()) payload.af_dp = deepLinkUri.trim();
     if (desktopFallbackUrl.trim()) payload.af_web_dp = desktopFallbackUrl.trim();
@@ -342,9 +400,27 @@ export function useOneLinkStitchedForm({
     });
     return payload;
   }, [
-    adName, adSet, campaignComposedValue, channel, deepLinkUri, desktopFallbackUrl,
-    forceDeeplink, iosFallbackUrl, isRetargeting, mediaSource,
-    ogDescription, ogImage, ogTitle, parameters, playStoreFallbackUrl, isCampaignRuleEnabled,
+    adName,
+    adNameNamingValidation.normalizedValue,
+    adSet,
+    adSetNamingValidation.normalizedValue,
+    campaignName,
+    campaignNamingValidation.normalizedValue,
+    channel,
+    deepLinkUri,
+    desktopFallbackUrl,
+    forceDeeplink,
+    iosFallbackUrl,
+    isRetargeting,
+    mediaSource,
+    ogDescription,
+    ogImage,
+    ogTitle,
+    parameters,
+    playStoreFallbackUrl,
+    selectedAdNameRule,
+    selectedAdSetRule,
+    selectedCampaignRule,
   ]);
 
   const generatedLongUrl = useMemo(() => {
@@ -357,8 +433,12 @@ export function useOneLinkStitchedForm({
   const requiredLinkName = linkName.trim();
   const requiredTemplateId = resolvedTemplateId.trim();
   const requiredMediaSource = mediaSource.trim();
-  const hasCampaignRuleViolation = isCampaignRuleEnabled && isCampaignRuleStrict && !campaignSlotValidation.valid;
-  const hasMissingRequiredField = !requiredLinkName || !requiredTemplateId || !requiredMediaSource || hasCampaignRuleViolation;
+  const hasNamingRuleViolation = isNamingRuleStrict && (
+    !campaignNamingValidation.isValid
+    || !adSetNamingValidation.isValid
+    || !adNameNamingValidation.isValid
+  );
+  const hasMissingRequiredField = !requiredLinkName || !requiredTemplateId || !requiredMediaSource || hasNamingRuleViolation;
 
   const androidFallbackValidation = useMemo(
     () => validateOneLinkRedirectUrl(playStoreFallbackUrl, 'Android Mobile Redirection URL'),
@@ -380,7 +460,7 @@ export function useOneLinkStitchedForm({
   const hasLinkNameError = showRequiredValidation && !requiredLinkName;
   const hasTemplateIdError = showRequiredValidation && !requiredTemplateId;
   const hasMediaSourceError = showRequiredValidation && !requiredMediaSource;
-  const hasCampaignRuleError = showRequiredValidation && hasCampaignRuleViolation;
+  const hasCampaignRuleError = showRequiredValidation && isNamingRuleStrict && !campaignNamingValidation.isValid;
   const hasAndroidFallbackUrlError = showRequiredValidation && !androidFallbackValidation.valid;
   const hasIosFallbackUrlError = showRequiredValidation && !iosFallbackValidation.valid;
   const hasDesktopFallbackUrlError = showRequiredValidation && !desktopFallbackValidation.valid;
@@ -415,9 +495,9 @@ export function useOneLinkStitchedForm({
     if (hasMissingRequiredField || hasInvalidRedirectUrl) {
       setShowRequiredValidation(true);
       setCreateFeedback(
-        hasCampaignRuleViolation
+        hasNamingRuleViolation
           ? {
-              message: 'Campaign naming rule validation failed. Fill required slots and resolve slot errors.',
+              message: 'Naming rule validation failed. Check values for selected naming rules.',
               status: 'error',
             }
           : null,
@@ -474,7 +554,7 @@ export function useOneLinkStitchedForm({
         const response = await fetch('/api/onelinks', {
           body: JSON.stringify({
             brandDomain: resolvedBrandDomain,
-            campaignName: campaignComposedValue,
+            campaignName: oneLinkData.c || campaignName,
             channel,
             creationType,
             linkName: requiredLinkName,
@@ -558,19 +638,23 @@ export function useOneLinkStitchedForm({
 
   return {
     adName,
+    adNameNamingRules,
     adNameOptions,
+    adNameRuleErrorMessage,
+    adNameSelectedRuleId: selectedNamingRuleIds.af_ad,
     adSet,
+    adSetNamingRules,
     adSetOptions,
+    adSetRuleErrorMessage,
+    adSetSelectedRuleId: selectedNamingRuleIds.af_adset,
     androidFallbackErrorMessage: androidFallbackValidation.error,
     androidFallbackOptions,
     brandDomainOptions,
     campaignName,
+    campaignNamingRules,
     campaignOptions,
-    campaignComposedValue,
-    campaignRule,
-    campaignRuleWarning,
-    campaignSlotErrors,
-    campaignSlotValues,
+    campaignRuleErrorMessage,
+    campaignSelectedRuleId: selectedNamingRuleIds.c,
     channel,
     channelOptions,
     createFeedback,
@@ -586,18 +670,17 @@ export function useOneLinkStitchedForm({
     handleAddParameter,
     handleBrandDomainChange,
     handleBrandDomainInputChange,
-    handleCampaignSlotChange,
     handleCopyShortLink,
     handleCreateLink,
     handleParameterChange,
     handleParameterDelete,
     handleTemplateIdChange,
     hasAndroidFallbackUrlError,
+    hasCampaignRuleError,
     hasDesktopFallbackUrlError,
     hasInvalidRedirectUrl,
     hasIosFallbackUrlError,
     hasLinkNameError,
-    hasCampaignRuleError,
     hasMediaSourceError,
     hasMissingRequiredField,
     hasTemplateIdError,
@@ -641,6 +724,9 @@ export function useOneLinkStitchedForm({
     setOgImage,
     setOgTitle,
     setPlayStoreFallbackUrl,
+    setSelectedAdNameRuleId: (ruleId: string) => setSelectedNamingRuleId('af_ad', ruleId),
+    setSelectedAdSetRuleId: (ruleId: string) => setSelectedNamingRuleId('af_adset', ruleId),
+    setSelectedCampaignRuleId: (ruleId: string) => setSelectedNamingRuleId('c', ruleId),
     setShortLinkId,
     settings,
     shortLink,

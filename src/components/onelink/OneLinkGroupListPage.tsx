@@ -461,11 +461,11 @@ function OneLinkGroupListPage() {
           </Paper>
 
           <Box sx={ { display: 'flex', justifyContent: 'space-between', px: 0.5 } }>
-            <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>
+            <Typography sx={ { color: 'text.secondary', typography: 'bodySm' } }>
               {`Showing ${pagedGroups.length} / ${totalFilteredGroups} records`}
             </Typography>
             {isLoading && (
-              <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>Loading...</Typography>
+              <Typography sx={ { color: 'text.secondary', typography: 'bodySm' } }>Loading...</Typography>
             )}
           </Box>
 
@@ -483,10 +483,10 @@ function OneLinkGroupListPage() {
                 textAlign: 'center',
               } }
             >
-              <Typography sx={ { color: 'text.primary', fontSize: 16, fontWeight: 600 } }>
+              <Typography sx={ { color: 'text.primary', typography: 'titleSm', fontWeight: 600 } }>
                 No link groups found
               </Typography>
-              <Typography sx={ { color: 'text.secondary', fontSize: 13, mt: 0.75 } }>
+              <Typography sx={ { color: 'text.secondary', typography: 'bodySm', mt: 0.75 } }>
                 Create a link group first, then search or manage groups here.
               </Typography>
             </Paper>
@@ -540,14 +540,14 @@ function OneLinkGroupListPage() {
                               className='group-name-link'
                               sx={ {
                                 color: 'primary.main',
-                                fontSize: 13,
+                                typography: 'bodySm',
                                 fontWeight: 600,
                                 textDecoration: 'none',
                               } }
                             >
                               {group.name}
                             </Typography>
-                            <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                            <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                               {group.id}
                             </Typography>
                           </Stack>

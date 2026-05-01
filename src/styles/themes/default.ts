@@ -4,8 +4,23 @@ import { DESIGN_TOKENS } from '@/styles/tokens/design-tokens';
 
 const fontSans = 'var(--font-sans)';
 const fontSerif = 'var(--font-serif)';
-const penControlRadius = 6;
-const penCardRadius = 8;
+
+function tokenRemToPx(tokenValue: string): number {
+  const numericValue = Number.parseFloat(tokenValue);
+
+  if (Number.isNaN(numericValue)) {
+    return 8;
+  }
+
+  if (tokenValue.endsWith('rem')) {
+    return Math.round(numericValue * 16);
+  }
+
+  return Math.round(numericValue);
+}
+
+const penCardRadius = tokenRemToPx(DESIGN_TOKENS['--radius']);
+const penControlRadius = Math.max(penCardRadius - 2, 4);
 
 export const pencilTokens = {
   primary: DESIGN_TOKENS['--primary'],
@@ -38,10 +53,90 @@ export const pencilTokens = {
 
 export const customShadows = {
   none: 'none',
-  sm: '0 0 12px rgba(0, 0, 0, 0.06)',
-  md: '0 0 16px rgba(0, 0, 0, 0.08)',
-  lg: '0 0 20px rgba(0, 0, 0, 0.10)',
-  xl: '0 0 24px rgba(0, 0, 0, 0.12)',
+  sm: DESIGN_TOKENS['--shadow-sm'],
+  md: DESIGN_TOKENS['--shadow-md'],
+  lg: DESIGN_TOKENS['--shadow-lg'],
+  xl: DESIGN_TOKENS['--shadow-xl'],
+} as const;
+
+const semanticTypography = {
+  bodyLg: {
+    fontFamily: fontSans,
+    fontSize: '0.9375rem',
+    lineHeight: 1.55,
+  },
+  bodyMd: {
+    fontFamily: fontSans,
+    fontSize: '0.875rem',
+    lineHeight: 1.5,
+  },
+  bodySm: {
+    fontFamily: fontSans,
+    fontSize: '0.8125rem',
+    lineHeight: 1.5,
+  },
+  bodyXs: {
+    fontFamily: fontSans,
+    fontSize: '0.75rem',
+    lineHeight: 1.5,
+  },
+  codeMd: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: '0.875rem',
+    lineHeight: 1.45,
+  },
+  codeSm: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: '0.8125rem',
+    lineHeight: 1.45,
+  },
+  codeXs: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: '0.75rem',
+    lineHeight: 1.45,
+  },
+  code2xs: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: '0.71875rem',
+    lineHeight: 1.45,
+  },
+  codeMicro: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: '0.6875rem',
+    lineHeight: 1.45,
+  },
+  headlineSm: {
+    fontFamily: fontSans,
+    fontSize: '1.125rem',
+    lineHeight: 1.4,
+  },
+  micro: {
+    fontFamily: fontSans,
+    fontSize: '0.6875rem',
+    lineHeight: 1.45,
+  },
+  microTight: {
+    fontFamily: fontSans,
+    fontSize: '0.625rem',
+    lineHeight: 1.4,
+  },
+  pageTitle: {
+    fontFamily: fontSans,
+    fontSize: '1.625rem',
+    fontWeight: 700,
+    lineHeight: 1.2,
+  },
+  sectionTitle: {
+    fontFamily: fontSans,
+    fontSize: '1.375rem',
+    fontWeight: 600,
+    lineHeight: 1.3,
+  },
+  titleSm: {
+    fontFamily: fontSans,
+    fontSize: '1rem',
+    lineHeight: 1.45,
+  },
 } as const;
 
 const dimmedShadows: Shadows = Array.from(
@@ -78,7 +173,7 @@ const defaultTheme = createTheme({
     divider: pencilTokens.border,
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: penCardRadius,
   },
   typography: {
     fontFamily: fontSans,
@@ -159,6 +254,7 @@ const defaultTheme = createTheme({
       lineHeight: 1.5,
       textTransform: 'uppercase',
     },
+    ...semanticTypography,
   },
   shadows: dimmedShadows,
   components: {
@@ -177,11 +273,10 @@ const defaultTheme = createTheme({
         disableElevation: true,
       },
       styleOverrides: {
-        root: ({ theme }) => ({
+        root: () => ({
           borderRadius: penControlRadius,
-          fontSize: theme.typography.pxToRem(14),
+          ...semanticTypography.bodyMd,
           fontWeight: 500,
-          lineHeight: 1.4286,
           minHeight: 40,
           padding: '8px 16px',
           textTransform: 'none',
@@ -215,12 +310,11 @@ const defaultTheme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: ({ theme }) => ({
-          backgroundColor: theme.palette.background.default,
+          backgroundColor: theme.palette.background.paper,
           borderRadius: penControlRadius,
           minHeight: 40,
           '& .MuiOutlinedInput-input': {
-            fontSize: 14,
-            lineHeight: 1.4286,
+            ...semanticTypography.bodyMd,
             padding: '10px 12px',
           },
           '&.MuiInputBase-multiline': {
@@ -248,7 +342,7 @@ const defaultTheme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          fontSize: 12,
+          ...semanticTypography.bodyXs,
           fontWeight: 600,
           minHeight: 24,
         },

@@ -22,19 +22,23 @@ function OneLinkStitchedPage({
 }: OneLinkStitchedPageProps) {
   const {
     adName,
+    adNameNamingRules,
     adNameOptions,
+    adNameRuleErrorMessage,
+    adNameSelectedRuleId,
     adSet,
+    adSetNamingRules,
     adSetOptions,
+    adSetRuleErrorMessage,
+    adSetSelectedRuleId,
     androidFallbackErrorMessage,
     androidFallbackOptions,
     brandDomainOptions,
     campaignName,
-    campaignComposedValue,
+    campaignNamingRules,
     campaignOptions,
-    campaignRule,
-    campaignRuleWarning,
-    campaignSlotErrors,
-    campaignSlotValues,
+    campaignRuleErrorMessage,
+    campaignSelectedRuleId,
     channel,
     channelOptions,
     createFeedback,
@@ -50,7 +54,6 @@ function OneLinkStitchedPage({
     handleAddParameter,
     handleBrandDomainChange,
     handleBrandDomainInputChange,
-    handleCampaignSlotChange,
     handleCopyShortLink,
     handleCreateLink,
     handleParameterChange,
@@ -61,7 +64,6 @@ function OneLinkStitchedPage({
     hasInvalidRedirectUrl,
     hasIosFallbackUrlError,
     hasLinkNameError,
-    hasCampaignRuleError,
     hasMediaSourceError,
     hasMissingRequiredField,
     hasTemplateIdError,
@@ -105,6 +107,9 @@ function OneLinkStitchedPage({
     setOgImage,
     setOgTitle,
     setPlayStoreFallbackUrl,
+    setSelectedAdNameRuleId,
+    setSelectedAdSetRuleId,
+    setSelectedCampaignRuleId,
     setShortLinkId,
     settings,
     shortLink,
@@ -161,18 +166,24 @@ function OneLinkStitchedPage({
                 campaignName={ campaignName }
                 onCampaignNameChange={ setCampaignName }
                 campaignOptions={ campaignOptions }
-                campaignRule={ campaignRule }
-                campaignSlotValues={ campaignSlotValues }
-                onCampaignSlotChange={ handleCampaignSlotChange }
-                campaignSlotErrors={ campaignSlotErrors }
-                campaignComposedValue={ campaignComposedValue }
-                campaignRuleWarning={ campaignRuleWarning }
+                campaignNamingRules={ campaignNamingRules }
+                campaignSelectedRuleId={ campaignSelectedRuleId }
+                onCampaignRuleSelect={ setSelectedCampaignRuleId }
+                campaignRuleErrorMessage={ campaignRuleErrorMessage }
                 adSet={ adSet }
                 onAdSetChange={ setAdSet }
                 adSetOptions={ adSetOptions }
+                adSetNamingRules={ adSetNamingRules }
+                adSetSelectedRuleId={ adSetSelectedRuleId }
+                onAdSetRuleSelect={ setSelectedAdSetRuleId }
+                adSetRuleErrorMessage={ adSetRuleErrorMessage }
                 adName={ adName }
                 onAdNameChange={ setAdName }
                 adNameOptions={ adNameOptions }
+                adNameNamingRules={ adNameNamingRules }
+                adNameSelectedRuleId={ adNameSelectedRuleId }
+                onAdNameRuleSelect={ setSelectedAdNameRuleId }
+                adNameRuleErrorMessage={ adNameRuleErrorMessage }
                 channel={ channel }
                 onChannelChange={ setChannel }
                 channelOptions={ channelOptions }
@@ -183,7 +194,6 @@ function OneLinkStitchedPage({
                 hasLinkNameError={ hasLinkNameError }
                 hasTemplateIdError={ hasTemplateIdError }
                 hasMediaSourceError={ hasMediaSourceError }
-                hasCampaignRuleError={ hasCampaignRuleError }
               />
 
               <DeepLinkingSection

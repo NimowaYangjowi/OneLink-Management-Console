@@ -47,7 +47,7 @@ function AutocompleteField({
 }) {
   return (
     <Box>
-      <Typography sx={ { fontSize: 13, fontWeight: 500, mb: 0.75 } }>
+      <Typography sx={ { typography: 'bodySm', fontWeight: 500, mb: 0.75 } }>
         {label}
         {isRequired ? (
           <Box component='span' sx={ { color: 'error.main', ml: 0.5 } }>

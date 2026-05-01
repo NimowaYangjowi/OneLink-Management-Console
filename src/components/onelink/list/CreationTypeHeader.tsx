@@ -30,7 +30,7 @@ function CreationTypeHeader({ activeTab, onTabChange }: CreationTypeHeaderProps)
           minHeight: 44,
           width: { md: 'auto', xs: '100%' },
           '& .MuiTab-root': {
-            fontSize: 13,
+            typography: 'bodySm',
             fontWeight: 600,
             minHeight: 44,
             px: 1.5,

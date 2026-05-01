@@ -23,11 +23,15 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { alpha } from '@mui/material/styles';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ConsoleLayout from '@/components/onelink/ConsoleLayout';
+import NamingRuleReadonlyView from '@/components/onelink/NamingRuleReadonlyView';
 import { inferRegexPatternFromSamples } from '@/lib/namingConvention';
 import { filledFieldSx } from '@/components/onelink/stitched/fieldStyles';
 import {
+  NAMING_CONVENTION_TARGET_FIELDS,
+  NAMING_CONVENTION_TARGET_FIELD_LABELS,
   NAMING_RULE_ENFORCEMENT_MODE_LABELS,
   PRESET_FIELDS,
   PRESET_FIELDS_BY_SECTION,
@@ -38,6 +42,7 @@ import {
   sanitizeNamingConventionRule,
   type NamingConventionRule,
   type NamingConventionSlotRule,
+  type NamingConventionTargetField,
   type NamingRuleEnforcementMode,
   type PresetField,
   useSettings,
@@ -66,12 +71,18 @@ const HIDDEN_PRESET_FIELDS_ON_SETTINGS: ReadonlySet<PresetField> = new Set([
   'link_name',
   'shortlink_id',
 ]);
+const NAMING_TARGET_FIELDS_ON_SETTINGS: NamingConventionTargetField[] = NAMING_CONVENTION_TARGET_FIELDS.filter(
+  (field) => field !== 'pid',
+);
 
-function createDefaultCampaignRule(): NamingConventionRule {
+function createDefaultNamingRule(field: NamingConventionTargetField, ruleOrder: number): NamingConventionRule {
+  const fieldTitle = NAMING_CONVENTION_TARGET_FIELD_LABELS[field].split('(')[0]?.trim() || field;
   return {
     delimiter: '_',
     enabled: false,
-    field: 'c',
+    field,
+    id: `rule_${field}_${ruleOrder}`,
+    name: `${fieldTitle} Rule ${ruleOrder}`,
     slots: [
       {
         allowedValues: [],
@@ -142,8 +153,8 @@ function OneLinkSettingsPage() {
     addPreset,
     addTemplateId,
     addTemplateBrandedDomain,
+    getNamingConventionRules,
     getTemplateBrandedDomains,
-    getNamingConventionRule,
     removePreset,
     removeNamingConventionRule,
     removeTemplateBrandedDomain,
@@ -164,14 +175,37 @@ function OneLinkSettingsPage() {
   const [presetErrors, setPresetErrors] = useState<Record<PresetField, string>>(
     Object.fromEntries(PRESET_FIELDS.map((field) => [field, ''])) as Record<PresetField, string>,
   );
-  const persistedCampaignRule = useMemo(
-    () => getNamingConventionRule('c') ?? createDefaultCampaignRule(),
-    [getNamingConventionRule],
+  const [selectedNamingField, setSelectedNamingField] = useState<NamingConventionTargetField>('c');
+  const persistedNamingRules = useMemo(
+    () => getNamingConventionRules(selectedNamingField),
+    [getNamingConventionRules, selectedNamingField],
   );
-  const [campaignRuleDraft, setCampaignRuleDraft] = useState<NamingConventionRule>(persistedCampaignRule);
+  const [selectedNamingRuleId, setSelectedNamingRuleId] = useState('');
+  const persistedSelectedNamingRule = useMemo(() => {
+    const selectedRule = persistedNamingRules.find((rule) => rule.id === selectedNamingRuleId);
+    if (selectedRule) {
+      return selectedRule;
+    }
+
+    if (persistedNamingRules.length > 0) {
+      return persistedNamingRules[0];
+    }
+
+    return createDefaultNamingRule(selectedNamingField, 1);
+  }, [persistedNamingRules, selectedNamingField, selectedNamingRuleId]);
+  const fieldLabel = useMemo(
+    () => NAMING_CONVENTION_TARGET_FIELD_LABELS[selectedNamingField],
+    [selectedNamingField],
+  );
+  const fieldShortLabel = useMemo(
+    () => fieldLabel.split('(')[0]?.trim() || selectedNamingField,
+    [fieldLabel, selectedNamingField],
+  );
+  const [campaignRuleDraft, setCampaignRuleDraft] = useState<NamingConventionRule>(persistedSelectedNamingRule);
   const [namingEnforcementModeDraft, setNamingEnforcementModeDraft] = useState<NamingRuleEnforcementMode>(
     settings.namingConvention.enforcementMode,
   );
+  const [isNamingRuleReadOnlyView, setIsNamingRuleReadOnlyView] = useState(true);
   const [namingWizardStep, setNamingWizardStep] = useState(0);
   const [rulesTab, setRulesTab] = useState<'naming' | 'presets'>('naming');
   const [campaignStructureSampleDraft, setCampaignStructureSampleDraft] = useState('');
@@ -188,7 +222,7 @@ function OneLinkSettingsPage() {
     null,
   );
   const isNamingDirty = useMemo(() => {
-    const persistedRuleJson = JSON.stringify(persistedCampaignRule);
+    const persistedRuleJson = JSON.stringify(persistedSelectedNamingRule);
     const draftRuleJson = JSON.stringify(campaignRuleDraft);
     return (
       draftRuleJson !== persistedRuleJson
@@ -197,9 +231,112 @@ function OneLinkSettingsPage() {
   }, [
     campaignRuleDraft,
     namingEnforcementModeDraft,
-    persistedCampaignRule,
+    persistedSelectedNamingRule,
     settings.namingConvention.enforcementMode,
   ]);
+  const hasPersistedSelectedRule = useMemo(
+    () => persistedNamingRules.some((rule) => rule.id === campaignRuleDraft.id),
+    [campaignRuleDraft.id, persistedNamingRules],
+  );
+  const resetNamingWizardWorkspace = useCallback(() => {
+    setCampaignStructureSampleDraft('');
+    setCampaignAnchorSample('');
+    setCampaignAnchorParts([]);
+    setActiveCampaignSlotIndex(0);
+    setCampaignRegexSampleDraft('');
+    setHasSampleInferenceRun(false);
+  }, []);
+
+  useEffect(() => {
+    if (persistedNamingRules.length === 0) {
+      if (selectedNamingRuleId) {
+        setSelectedNamingRuleId('');
+      }
+      return;
+    }
+
+    const hasSelectedRule = persistedNamingRules.some((rule) => rule.id === selectedNamingRuleId);
+    if (!hasSelectedRule) {
+      setSelectedNamingRuleId(persistedNamingRules[0]?.id ?? '');
+    }
+  }, [persistedNamingRules, selectedNamingRuleId]);
+
+  useEffect(() => {
+    setCampaignRuleDraft(persistedSelectedNamingRule);
+  }, [persistedSelectedNamingRule]);
+
+  useEffect(() => {
+    setNamingWizardStep(0);
+    resetNamingWizardWorkspace();
+    setIsNamingRuleReadOnlyView(true);
+    setNamingFeedback(null);
+  }, [resetNamingWizardWorkspace, selectedNamingField]);
+
+  useEffect(() => {
+    if (persistedNamingRules.length === 0) {
+      setIsNamingRuleReadOnlyView(false);
+    }
+  }, [persistedNamingRules.length]);
+
+  const handleNamingFieldChange = (field: NamingConventionTargetField) => {
+    setSelectedNamingField(field);
+  };
+
+  const handleNamingRuleSelect = (ruleId: string) => {
+    setSelectedNamingRuleId(ruleId);
+    const selectedRule = persistedNamingRules.find((rule) => rule.id === ruleId);
+    if (!selectedRule) {
+      return;
+    }
+
+    setCampaignRuleDraft(selectedRule);
+    setNamingWizardStep(0);
+    setIsNamingRuleReadOnlyView(true);
+    resetNamingWizardWorkspace();
+    setNamingFeedback({
+      message: `Loaded "${selectedRule.name}" for review.`,
+      status: 'success',
+    });
+  };
+
+  const handleEditSelectedRule = () => {
+    if (!hasPersistedSelectedRule) {
+      return;
+    }
+
+    setIsNamingRuleReadOnlyView(false);
+    setNamingWizardStep(1);
+    setNamingFeedback(null);
+  };
+
+  const handleAddNamingRule = () => {
+    let ruleOrder = persistedNamingRules.length + 1;
+    let ruleId = `rule_${selectedNamingField}_${ruleOrder}`;
+    while (persistedNamingRules.some((rule) => rule.id === ruleId)) {
+      ruleOrder += 1;
+      ruleId = `rule_${selectedNamingField}_${ruleOrder}`;
+    }
+
+    const newRule = sanitizeNamingConventionRule(
+      {
+        ...createDefaultNamingRule(selectedNamingField, ruleOrder),
+        id: ruleId,
+      },
+      selectedNamingField,
+      ruleOrder,
+    );
+
+    upsertNamingConventionRule(selectedNamingField, newRule);
+    setSelectedNamingRuleId(newRule.id);
+    setCampaignRuleDraft(newRule);
+    setIsNamingRuleReadOnlyView(false);
+    setNamingWizardStep(1);
+    resetNamingWizardWorkspace();
+    setNamingFeedback({
+      message: `${fieldShortLabel} rule "${newRule.name}" has been added.`,
+      status: 'success',
+    });
+  };
 
   const handleTemplateAdd = async () => {
     setIsAddingTemplate(true);
@@ -321,18 +458,20 @@ function OneLinkSettingsPage() {
   };
 
   const handleSaveNamingConvention = () => {
-    const normalizedRule = sanitizeNamingConventionRule(campaignRuleDraft, 'c');
+    const normalizedRule = sanitizeNamingConventionRule(campaignRuleDraft, selectedNamingField);
     setNamingConventionEnforcementMode(namingEnforcementModeDraft);
-    upsertNamingConventionRule('c', normalizedRule);
+    upsertNamingConventionRule(selectedNamingField, normalizedRule);
+    setSelectedNamingRuleId(normalizedRule.id);
     setCampaignRuleDraft(normalizedRule);
+    setIsNamingRuleReadOnlyView(true);
     setNamingFeedback({
-      message: 'Campaign naming convention has been saved.',
+      message: `${fieldShortLabel} naming convention rule has been saved.`,
       status: 'success',
     });
   };
 
   const handleResetNamingDraft = () => {
-    setCampaignRuleDraft(persistedCampaignRule);
+    setCampaignRuleDraft(persistedSelectedNamingRule);
     setNamingEnforcementModeDraft(settings.namingConvention.enforcementMode);
     setNamingWizardStep(0);
     setCampaignStructureSampleDraft('');
@@ -345,9 +484,14 @@ function OneLinkSettingsPage() {
   };
 
   const handleRemoveCampaignRule = () => {
-    removeNamingConventionRule('c');
-    const resetRule = createDefaultCampaignRule();
+    if (!campaignRuleDraft.id || !hasPersistedSelectedRule) {
+      return;
+    }
+
+    removeNamingConventionRule(selectedNamingField, campaignRuleDraft.id);
+    const resetRule = createDefaultNamingRule(selectedNamingField, 1);
     setCampaignRuleDraft(resetRule);
+    setIsNamingRuleReadOnlyView(persistedNamingRules.length > 1);
     setNamingWizardStep(0);
     setCampaignStructureSampleDraft('');
     setCampaignAnchorSample('');
@@ -356,7 +500,7 @@ function OneLinkSettingsPage() {
     setCampaignRegexSampleDraft('');
     setHasSampleInferenceRun(false);
     setNamingFeedback({
-      message: 'Campaign naming convention has been removed.',
+      message: `${fieldShortLabel} naming convention rule has been removed.`,
       status: 'success',
     });
   };
@@ -376,7 +520,7 @@ function OneLinkSettingsPage() {
         ...campaignRuleDraft,
         delimiter: detectedStructure.delimiter,
         enabled: true,
-        field: 'c',
+        field: selectedNamingField,
         slots: detectedStructure.parts.map((part, index) => {
           const slot = createSlotDraft(index + 1);
           return {
@@ -388,7 +532,7 @@ function OneLinkSettingsPage() {
           };
         }),
       },
-      'c',
+      selectedNamingField,
     );
 
     setCampaignRuleDraft(nextRule);
@@ -413,7 +557,7 @@ function OneLinkSettingsPage() {
       .filter(Boolean);
     if (sampleLines.length === 0) {
       setNamingFeedback({
-        message: 'Enter at least one sample campaign value.',
+        message: `Enter at least one sample ${fieldShortLabel.toLowerCase()} value.`,
         status: 'error',
       });
       return;
@@ -532,8 +676,8 @@ function OneLinkSettingsPage() {
             <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 3 } }>
               <Stack spacing={ 2 }>
                 <Box>
-                  <Typography sx={ { fontSize: 22, fontWeight: 600 } }>Template IDs</Typography>
-                  <Typography sx={ { color: 'text.secondary', fontSize: 14 } }>
+                  <Typography sx={ { typography: 'sectionTitle', fontWeight: 600 } }>Template IDs</Typography>
+                  <Typography sx={ { color: 'text.secondary', typography: 'bodyMd' } }>
                     Add 4-character alphanumeric Template IDs used for OneLink generation.
                   </Typography>
                 </Box>
@@ -602,8 +746,8 @@ function OneLinkSettingsPage() {
                             spacing={ 1 }
                           >
                             <Box>
-                              <Typography sx={ { fontSize: 16, fontWeight: 600 } }>{id}</Typography>
-                              <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                              <Typography sx={ { typography: 'titleSm', fontWeight: 600 } }>{id}</Typography>
+                              <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                                 {settings.templateDomains[id]
                                   ? `${settings.templateDomains[id].subdomain} (${settings.templateDomains[id].host})`
                                   : 'Domain metadata not resolved yet.'}
@@ -675,7 +819,7 @@ function OneLinkSettingsPage() {
                                     py: 1,
                                   } }
                                 >
-                                  <Typography sx={ { fontSize: 14 } }>{domain}</Typography>
+                                  <Typography sx={ { typography: 'bodyMd' } }>{domain}</Typography>
                                   <Button
                                     onClick={ () => removeTemplateBrandedDomain(id, domain) }
                                     sx={ {
@@ -690,7 +834,7 @@ function OneLinkSettingsPage() {
                                 </Stack>
                               ))
                             ) : (
-                              <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>
+                              <Typography sx={ { color: 'text.secondary', typography: 'bodySm' } }>
                                 No branded domains for this template yet.
                               </Typography>
                             )}
@@ -699,7 +843,7 @@ function OneLinkSettingsPage() {
                       </Paper>
                     ))
                   ) : (
-                    <Typography sx={ { color: 'text.secondary', fontSize: 13 } }>No template IDs yet.</Typography>
+                    <Typography sx={ { color: 'text.secondary', typography: 'bodySm' } }>No template IDs yet.</Typography>
                   )}
                 </Stack>
               </Stack>
@@ -708,9 +852,9 @@ function OneLinkSettingsPage() {
             <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 3 } }>
               <Stack spacing={ 2 }>
                 <Box>
-                  <Typography sx={ { fontSize: 22, fontWeight: 600 } }>Create Rules</Typography>
-                  <Typography sx={ { color: 'text.secondary', fontSize: 14 } }>
-                    Manage Presets and Naming Convention rules for campaign generation.
+                  <Typography sx={ { typography: 'sectionTitle', fontWeight: 600 } }>Create Rules</Typography>
+                  <Typography sx={ { color: 'text.secondary', typography: 'bodyMd' } }>
+                    Manage Presets and Naming Convention rules for link attributes.
                   </Typography>
                 </Box>
 
@@ -719,11 +863,114 @@ function OneLinkSettingsPage() {
                   value={ rulesTab }
                   variant='scrollable'
                 >
-                  <Tab label='Naming Convention' value='naming' />
                   <Tab label='Presets' value='presets' />
+                  <Tab label='Naming Convention' value='naming' />
                 </Tabs>
 
                 {rulesTab === 'naming' ? (
+                  <>
+                {namingFeedback ? (
+                  <Alert severity={ namingFeedback.status === 'success' ? 'success' : 'error' }>
+                    {namingFeedback.message}
+                  </Alert>
+                ) : null}
+
+                <Paper
+                  elevation={ 0 }
+                  sx={ {
+                    backgroundColor: 'background.default',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    p: 2,
+                  } }
+                >
+                  <Stack spacing={ 1.5 }>
+                    <Stack
+                      alignItems={ { sm: 'center', xs: 'flex-start' } }
+                      direction={ { sm: 'row', xs: 'column' } }
+                      spacing={ 1.25 }
+                    >
+                      <Typography sx={ { typography: 'bodySm', fontWeight: 600 } }>Target Field</Typography>
+                      <FormControl size='small' sx={ { minWidth: 220 } }>
+                        <Select
+                          onChange={ (event) => handleNamingFieldChange(event.target.value as NamingConventionTargetField) }
+                          value={ selectedNamingField }
+                        >
+                          {NAMING_TARGET_FIELDS_ON_SETTINGS.map((field) => (
+                            <MenuItem key={ field } value={ field }>
+                              {NAMING_CONVENTION_TARGET_FIELD_LABELS[field]}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <Button onClick={ handleAddNamingRule } sx={ compactButtonSx } variant='contained'>
+                        Add Rule
+                      </Button>
+                    </Stack>
+                    {persistedNamingRules.length > 0 ? (
+                      <Stack spacing={ 1 }>
+                        <FormControl size='small' sx={ { maxWidth: 420, minWidth: 260 } }>
+                          <Select
+                            onChange={ (event) => handleNamingRuleSelect(event.target.value as string) }
+                            value={ campaignRuleDraft.id }
+                          >
+                            {persistedNamingRules.map((rule) => (
+                              <MenuItem key={ rule.id } value={ rule.id }>
+                                {rule.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
+                          Select a saved rule to load and review its slot configuration.
+                        </Typography>
+                        <Stack direction='row' flexWrap='wrap' gap={ 0.75 }>
+                          {persistedNamingRules.map((rule) => (
+                            <Chip
+                              clickable
+                              color={ campaignRuleDraft.id === rule.id ? 'primary' : 'default' }
+                              key={ rule.id }
+                              label={ rule.name }
+                              onClick={ () => handleNamingRuleSelect(rule.id) }
+                              variant={ campaignRuleDraft.id === rule.id ? 'filled' : 'outlined' }
+                            />
+                          ))}
+                        </Stack>
+                      </Stack>
+                    ) : (
+                      <Alert severity='info'>
+                        No saved rules for {fieldShortLabel}. Click Add Rule to create one.
+                      </Alert>
+                    )}
+                  </Stack>
+                </Paper>
+
+                {isNamingRuleReadOnlyView && hasPersistedSelectedRule ? (
+                  <Stack spacing={ 1.5 }>
+                    <NamingRuleReadonlyView
+                      fieldLabel={ fieldLabel }
+                      rule={ campaignRuleDraft }
+                    />
+                    <Stack direction='row' flexWrap='wrap' gap={ 1 }>
+                      <Button
+                        onClick={ handleEditSelectedRule }
+                        sx={ compactButtonSx }
+                        variant='contained'
+                      >
+                        Edit Selected Rule
+                      </Button>
+                      <Button
+                        disabled={ !hasPersistedSelectedRule }
+                        onClick={ handleRemoveCampaignRule }
+                        sx={ { ...compactTextButtonSx, ...neutralTextButtonSx } }
+                        variant='text'
+                      >
+                        Remove Selected Rule
+                      </Button>
+                    </Stack>
+                  </Stack>
+                ) : (
                   <>
                 <Stepper activeStep={ namingWizardStep } alternativeLabel>
                   {NAMING_WIZARD_STEPS.map((stepLabel) => (
@@ -732,12 +979,6 @@ function OneLinkSettingsPage() {
                     </Step>
                   ))}
                 </Stepper>
-
-                {namingFeedback ? (
-                  <Alert severity={ namingFeedback.status === 'success' ? 'success' : 'error' }>
-                    {namingFeedback.message}
-                  </Alert>
-                ) : null}
 
                 {hasCampaignAnchorPreview ? (
                   <Paper
@@ -751,8 +992,8 @@ function OneLinkSettingsPage() {
                     } }
                   >
                     <Stack spacing={ 1 }>
-                      <Typography sx={ { fontSize: 13, fontWeight: 600 } }>Anchor Sample (Pinned)</Typography>
-                      <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                      <Typography sx={ { typography: 'bodySm', fontWeight: 600 } }>Anchor Sample (Pinned)</Typography>
+                      <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                         Click a slot chip or slot card to focus that segment while editing.
                       </Typography>
                       <Stack direction='row' flexWrap='wrap' gap={ 0.75 }>
@@ -765,14 +1006,14 @@ function OneLinkSettingsPage() {
                               variant={ activeCampaignSlotIndex === index ? 'filled' : 'outlined' }
                             />
                             {index < previewSlotParts.length - 1 ? (
-                              <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                              <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                                 {campaignRuleDraft.delimiter}
                               </Typography>
                             ) : null}
                           </Box>
                         ))}
                       </Stack>
-                      <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
+                      <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
                         Sample: {campaignAnchorSample}
                       </Typography>
                     </Stack>
@@ -791,10 +1032,10 @@ function OneLinkSettingsPage() {
                     } }
                   >
                     <Stack spacing={ 1.5 }>
-                      <Typography sx={ { fontSize: 14, fontWeight: 600 } }>Step 1. Analyze One Sample</Typography>
-                      <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
-                        Paste one sample campaign value. The system infers delimiter, slot count, and slot order
-                        automatically.
+                      <Typography sx={ { typography: 'bodyMd', fontWeight: 600 } }>Step 1. Analyze One Sample</Typography>
+                      <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
+                        Paste one sample {fieldShortLabel.toLowerCase()} value. The system infers delimiter, slot
+                        count, and slot order automatically.
                       </Typography>
                       <TextField
                         fullWidth
@@ -823,7 +1064,7 @@ function OneLinkSettingsPage() {
                       direction={ { sm: 'row', xs: 'column' } }
                       spacing={ 1.5 }
                     >
-                      <Typography sx={ { fontSize: 13, fontWeight: 500 } }>Delimiter</Typography>
+                      <Typography sx={ { typography: 'bodySm', fontWeight: 500 } }>Delimiter</Typography>
                       <FormControl size='small' sx={ { minWidth: 120 } }>
                         <Select
                           onChange={ (event) => handleCampaignDelimiterChange(event.target.value as NamingConventionRule['delimiter']) }
@@ -846,24 +1087,30 @@ function OneLinkSettingsPage() {
 
                     <Box
                       ref={ step2SlotsContainerRef }
-                      sx={ {
-                        display: 'flex',
-                        gap: 1.25,
-                        overflowX: isStep2Overflowing ? 'scroll' : 'hidden',
-                        overflowY: 'hidden',
-                        pb: isStep2Overflowing ? 0.5 : 0,
-                        scrollbarColor: isStep2Overflowing ? 'rgba(148, 163, 184, 0.85) transparent' : 'transparent transparent',
-                        scrollbarWidth: isStep2Overflowing ? 'thin' : 'none',
-                        '&::-webkit-scrollbar': {
-                          height: isStep2Overflowing ? 10 : 0,
-                        },
-                        '&::-webkit-scrollbar-thumb': {
-                          backgroundColor: isStep2Overflowing ? 'rgba(148, 163, 184, 0.85)' : 'transparent',
-                          borderRadius: 999,
-                        },
-                        '&::-webkit-scrollbar-track': {
-                          backgroundColor: 'transparent',
-                        },
+                      sx={ (theme) => {
+                        const scrollbarThumbColor = isStep2Overflowing
+                          ? alpha(theme.palette.text.secondary, 0.55)
+                          : 'transparent';
+
+                        return {
+                          display: 'flex',
+                          gap: 1.25,
+                          overflowX: isStep2Overflowing ? 'scroll' : 'hidden',
+                          overflowY: 'hidden',
+                          pb: isStep2Overflowing ? 0.5 : 0,
+                          scrollbarColor: `${scrollbarThumbColor} transparent`,
+                          scrollbarWidth: isStep2Overflowing ? 'thin' : 'none',
+                          '&::-webkit-scrollbar': {
+                            height: isStep2Overflowing ? 10 : 0,
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: scrollbarThumbColor,
+                            borderRadius: 999,
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            backgroundColor: 'transparent',
+                          },
+                        };
                       } }
                     >
                       {campaignRuleDraft.slots.map((slot, slotIndex) => (
@@ -882,11 +1129,11 @@ function OneLinkSettingsPage() {
                           } }
                         >
                           <Stack spacing={ 1 }>
-                            <Typography sx={ { fontSize: 13, fontWeight: 600 } }>Slot {slotIndex + 1}</Typography>
+                            <Typography sx={ { typography: 'bodySm', fontWeight: 600 } }>Slot {slotIndex + 1}</Typography>
                             <Typography
                               sx={ {
                                 color: 'text.secondary',
-                                fontSize: 12,
+                                typography: 'bodyXs',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
@@ -946,9 +1193,10 @@ function OneLinkSettingsPage() {
                     } }
                   >
                     <Stack spacing={ 1.25 }>
-                      <Typography sx={ { fontSize: 13, fontWeight: 600 } }>Step 3. Generate from Samples</Typography>
-                      <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
-                        Paste full campaign examples (one per line). Regex patterns are generated for slots set to Regex.
+                      <Typography sx={ { typography: 'bodySm', fontWeight: 600 } }>Step 3. Generate from Samples</Typography>
+                      <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
+                        Paste full {fieldShortLabel.toLowerCase()} examples (one per line). Regex patterns are
+                        generated for slots set to Regex.
                       </Typography>
                       <TextField
                         fullWidth
@@ -969,24 +1217,30 @@ function OneLinkSettingsPage() {
                       {regexPreviewSlots.length > 0 ? (
                         <Box
                           ref={ step3SlotsContainerRef }
-                          sx={ {
-                            display: 'flex',
-                            gap: 1.25,
-                            overflowX: isStep3Overflowing ? 'scroll' : 'hidden',
-                            overflowY: 'hidden',
-                            pb: isStep3Overflowing ? 0.5 : 0,
-                            scrollbarColor: isStep3Overflowing ? 'rgba(148, 163, 184, 0.85) transparent' : 'transparent transparent',
-                            scrollbarWidth: isStep3Overflowing ? 'thin' : 'none',
-                            '&::-webkit-scrollbar': {
-                              height: isStep3Overflowing ? 10 : 0,
-                            },
-                            '&::-webkit-scrollbar-thumb': {
-                              backgroundColor: isStep3Overflowing ? 'rgba(148, 163, 184, 0.85)' : 'transparent',
-                              borderRadius: 999,
-                            },
-                            '&::-webkit-scrollbar-track': {
-                              backgroundColor: 'transparent',
-                            },
+                          sx={ (theme) => {
+                            const scrollbarThumbColor = isStep3Overflowing
+                              ? alpha(theme.palette.text.secondary, 0.55)
+                              : 'transparent';
+
+                            return {
+                              display: 'flex',
+                              gap: 1.25,
+                              overflowX: isStep3Overflowing ? 'scroll' : 'hidden',
+                              overflowY: 'hidden',
+                              pb: isStep3Overflowing ? 0.5 : 0,
+                              scrollbarColor: `${scrollbarThumbColor} transparent`,
+                              scrollbarWidth: isStep3Overflowing ? 'thin' : 'none',
+                              '&::-webkit-scrollbar': {
+                                height: isStep3Overflowing ? 10 : 0,
+                              },
+                              '&::-webkit-scrollbar-thumb': {
+                                backgroundColor: scrollbarThumbColor,
+                                borderRadius: 999,
+                              },
+                              '&::-webkit-scrollbar-track': {
+                                backgroundColor: 'transparent',
+                              },
+                            };
                           } }
                         >
                           {regexPreviewSlots.map(({ slot, slotIndex }) => (
@@ -1003,10 +1257,10 @@ function OneLinkSettingsPage() {
                               } }
                             >
                               <Stack spacing={ 0.75 }>
-                                <Typography sx={ { fontSize: 12, fontWeight: 600 } }>
+                                <Typography sx={ { typography: 'bodyXs', fontWeight: 600 } }>
                                   Slot {slotIndex + 1} (Regex)
                                 </Typography>
-                                <Typography sx={ { color: 'text.secondary', fontFamily: 'monospace', fontSize: 12 } }>
+                                <Typography sx={ { color: 'text.secondary', typography: 'codeXs' } }>
                                   {slot.pattern || '(empty)'}
                                 </Typography>
                               </Stack>
@@ -1059,9 +1313,9 @@ function OneLinkSettingsPage() {
                       } }
                     >
                       <Stack spacing={ 1.25 }>
-                        <Typography sx={ { fontSize: 13, fontWeight: 600 } }>Step 4. Review & Save</Typography>
-                        <Typography sx={ { color: 'text.secondary', fontSize: 12 } }>
-                          Confirm enforcement mode and save the campaign rule.
+                        <Typography sx={ { typography: 'bodySm', fontWeight: 600 } }>Step 4. Review & Save</Typography>
+                        <Typography sx={ { color: 'text.secondary', typography: 'bodyXs' } }>
+                          Confirm enforcement mode and save the selected rule.
                         </Typography>
                         <Stack
                           alignItems={ { sm: 'center', xs: 'flex-start' } }
@@ -1076,7 +1330,17 @@ function OneLinkSettingsPage() {
                                 onChange={ (event) => handleCampaignRuleEnabledChange(event.target.checked) }
                               />
                             }
-                            label='Enable Campaign Rule'
+                            label={ `Enable ${fieldShortLabel} Rule` }
+                          />
+                          <TextField
+                            label='Rule Name'
+                            onChange={ (event) => {
+                              setCampaignRuleDraft((previous) => ({ ...previous, name: event.target.value }));
+                              setNamingFeedback(null);
+                            } }
+                            size='small'
+                            sx={ { minWidth: 220, ...filledFieldSx } }
+                            value={ campaignRuleDraft.name }
                           />
                           <FormControl size='small' sx={ { minWidth: 180 } }>
                             <Select
@@ -1122,15 +1386,18 @@ function OneLinkSettingsPage() {
                         Reset Draft
                       </Button>
                       <Button
+                        disabled={ !hasPersistedSelectedRule }
                         onClick={ handleRemoveCampaignRule }
                         sx={ { ...compactTextButtonSx, ...neutralTextButtonSx } }
                         variant='text'
                       >
-                        Remove Campaign Rule
+                        Remove Selected Rule
                       </Button>
                     </Stack>
                   </Stack>
                 ) : null}
+                  </>
+                )}
                   </>
                 ) : null}
               </Stack>
@@ -1140,15 +1407,15 @@ function OneLinkSettingsPage() {
               <Paper elevation={ 0 } sx={ { border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 3 } }>
               <Stack spacing={ 3 }>
                 <Box>
-                  <Typography sx={ { fontSize: 22, fontWeight: 600 } }>Presets</Typography>
-                  <Typography sx={ { color: 'text.secondary', fontSize: 14 } }>
+                  <Typography sx={ { typography: 'sectionTitle', fontWeight: 600 } }>Presets</Typography>
+                  <Typography sx={ { color: 'text.secondary', typography: 'bodyMd' } }>
                     Manage reusable values by section. Retargeting and Force deeplink are intentionally excluded.
                   </Typography>
                 </Box>
 
                 {PRESET_SECTIONS.map((section) => (
                   <Box key={ section }>
-                    <Typography sx={ { fontSize: 18, fontWeight: 600 } }>{PRESET_SECTION_LABELS[section]}</Typography>
+                    <Typography sx={ { typography: 'headlineSm', fontWeight: 600 } }>{PRESET_SECTION_LABELS[section]}</Typography>
                     <Stack spacing={ 1.5 } sx={ { mt: 1.5 } }>
                       {PRESET_FIELDS_BY_SECTION[section]
                         .filter((field) => !HIDDEN_PRESET_FIELDS_ON_SETTINGS.has(field))
@@ -1165,7 +1432,7 @@ function OneLinkSettingsPage() {
                           } }
                         >
                           <Stack spacing={ 1.5 }>
-                            <Typography sx={ { fontSize: 14, fontWeight: 600 } }>
+                            <Typography sx={ { typography: 'bodyMd', fontWeight: 600 } }>
                               {PRESET_FIELD_LABELS[field]} ({settings.presets[field].length})
                             </Typography>
 

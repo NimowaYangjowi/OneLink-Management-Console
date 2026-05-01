@@ -50,8 +50,8 @@ function SocialMediaPreviewSection({
   return (
     <Box sx={ { borderTop: '1px solid', borderTopColor: 'divider', pt: 4 } }>
       <Box sx={ { mb: 3 } }>
-        <Typography sx={ { fontSize: 22, fontWeight: 600 } }>Social Media Preview</Typography>
-        <Typography sx={ { color: 'text.secondary', fontSize: 14 } }>
+        <Typography sx={ { typography: 'sectionTitle', fontWeight: 600 } }>Social Media Preview</Typography>
+        <Typography sx={ { color: 'text.secondary', typography: 'bodyMd' } }>
           Customize how your link appears when shared.
         </Typography>
       </Box>
@@ -105,20 +105,20 @@ function SocialMediaPreviewSection({
               <Typography
                 sx={ {
                   color: 'text.secondary',
-                  fontSize: 10,
+                  typography: 'microTight',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                 } }
               >
                 example.onelink.me
               </Typography>
-              <Typography sx={ { fontSize: 14, fontWeight: 700, mt: 0.5 } }>{ogTitle}</Typography>
-              <Typography sx={ { color: 'text.secondary', fontSize: 12, mt: 0.5 } }>
+              <Typography sx={ { typography: 'bodyMd', fontWeight: 700, mt: 0.5 } }>{ogTitle}</Typography>
+              <Typography sx={ { color: 'text.secondary', typography: 'bodyXs', mt: 0.5 } }>
                 {ogDescription}
               </Typography>
             </Box>
           </Paper>
-          <Typography sx={ { color: 'text.secondary', fontSize: 11, mt: 1.25, textAlign: 'center' } }>
+          <Typography sx={ { color: 'text.secondary', typography: 'micro', mt: 1.25, textAlign: 'center' } }>
             Preview (Facebook/LinkedIn style)
           </Typography>
         </Stack>
